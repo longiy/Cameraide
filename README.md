@@ -9,7 +9,7 @@ Generally, when you want to "save" multiple different renders from one file with
 It is also a good for "saving" frame ranges if you because I feel like when you are rendering playbalsts out you keep changing fram ranges all the time.
 ## Features
 
-![Image Description](https://github.com/longiy/cameraide/blob/main/Cameraid_Preview.png)
+![Image Description](https://github.com/longiy/static-assets/blob/main/cameraide-assets/Cameraid_Preview.png)
 - Resolution
 - Swap Resolution
 - Frame Range
