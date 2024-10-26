@@ -708,11 +708,75 @@ class CAMERA_OT_render_selected(Operator):
         self.report({'INFO'}, "Rendering complete" if self._current_frame > context.scene.frame_end else "Rendering stopped")
         context.area.tag_redraw()
 
-class CAMERA_OT_render_selected_viewport(CAMERA_OT_render_selected):
+class CAMERA_OT_render_selected_viewport(Operator):
     bl_idname = "camera.render_selected_viewport"
     bl_label = "Render Viewport"
     bl_description = "Render using the viewport renderer"
-    render_engine = 'BLENDER_EEVEE_NEXT'
+    
+    def execute(self, context):
+        cam_obj = context.active_object
+        if cam_obj.type != 'CAMERA':
+            self.report({'ERROR'}, "Selected object is not a camera")
+            return {'CANCELLED'}
+
+        settings = cam_obj.data.cameraide_settings
+        if not settings.use_custom_settings:
+            self.report({'ERROR'}, "Custom settings are not enabled for this camera")
+            return {'CANCELLED'}
+
+        # Store original settings
+        original_settings = {
+            'frame_start': context.scene.frame_start,
+            'frame_end': context.scene.frame_end,
+            'filepath': context.scene.render.filepath,
+            'engine': context.scene.render.engine,
+            'resolution_x': context.scene.render.resolution_x,
+            'resolution_y': context.scene.render.resolution_y,
+            'resolution_percentage': context.scene.render.resolution_percentage,
+            'film_transparent': context.scene.render.film_transparent,
+            'use_stamp': context.scene.render.use_stamp,
+            'frame_step': context.scene.frame_step
+        }
+
+        # Apply settings
+        context.scene.frame_start = settings.frame_start
+        context.scene.frame_end = settings.frame_end
+        context.scene.frame_step = settings.frame_step
+        context.scene.render.resolution_x = settings.resolution_x
+        context.scene.render.resolution_y = settings.resolution_y
+        context.scene.render.resolution_percentage = settings.resolution_percentage
+        context.scene.render.film_transparent = settings.film_transparent
+        context.scene.render.use_stamp = settings.burn_metadata
+        context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+
+        # Set output path
+        base_path = settings.output_folder
+        if settings.include_camera_name:
+            base_path = os.path.join(base_path, f"{cam_obj.name}_{settings.file_name}")
+        else:
+            base_path = os.path.join(base_path, settings.file_name)
+        
+        context.scene.render.filepath = base_path
+
+        # Set the camera as active
+        context.scene.camera = cam_obj
+
+        # Use Blender's native viewport render animation
+        bpy.ops.render.opengl(animation=True, sequencer=False, write_still=True)
+
+        # Restore original settings
+        context.scene.frame_start = original_settings['frame_start']
+        context.scene.frame_end = original_settings['frame_end']
+        context.scene.frame_step = original_settings['frame_step']
+        context.scene.render.filepath = original_settings['filepath']
+        context.scene.render.engine = original_settings['engine']
+        context.scene.render.resolution_x = original_settings['resolution_x']
+        context.scene.render.resolution_y = original_settings['resolution_y']
+        context.scene.render.resolution_percentage = original_settings['resolution_percentage']
+        context.scene.render.film_transparent = original_settings['film_transparent']
+        context.scene.render.use_stamp = original_settings['use_stamp']
+
+        return {'FINISHED'}
 
 class CAMERA_OT_render_selected_normal(CAMERA_OT_render_selected):
     bl_idname = "camera.render_selected_normal"
