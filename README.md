@@ -15,8 +15,6 @@ Helpful for:
 
 ## Features
 
-[Rest of README content...]
-
 ![Image Description](https://github.com/longiy/static-assets/blob/main/cameraide-assets/Cameraid_Preview.png)
 
 ## Features
