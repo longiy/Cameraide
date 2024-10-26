@@ -1,4 +1,4 @@
-# Cameraide
+# Cameraide v0.1.1
 Cameraide fills the gap between Blender's basic render settings and complex render management systems. It's perfect for projects where you need more control than default settings offer, but don't want the overhead of a full render management pipeline.
 
 ## What it does
@@ -107,7 +107,7 @@ Standard rendering operators will use standard render and output settings.
 
 - Use the frame range sync feature to quickly preview camera-specific animations
 - Take advantage of the resolution swap button for quick aspect ratio changes
-- Enable "Include Camera Name" in filenames if you want to have the mas prefix
+- Enable "Include Camera Name" if you want to have them as a prefix
 - Use the viewport renderer for quick previews and the normal renderer for final output
 - Enable "Ignore Markers" to temporarily hide timeline markers during rendering
 
