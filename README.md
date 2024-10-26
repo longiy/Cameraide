@@ -107,7 +107,7 @@ Standard rendering operators will use standard render and output settings.
 
 - Use the frame range sync feature to quickly preview camera-specific animations
 - Take advantage of the resolution swap button for quick aspect ratio changes
-- Enable "Include Camera Name" in filenames if you want to have the mas prefix
+- Enable "Include Camera Name" if you want to have them as a prefix
 - Use the viewport renderer for quick previews and the normal renderer for final output
 - Enable "Ignore Markers" to temporarily hide timeline markers during rendering
 
