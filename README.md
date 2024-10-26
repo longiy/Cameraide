@@ -16,7 +16,7 @@ It is also a good for "saving" frame ranges if you because I feel like when you 
 ## Usage
 Select Camera object in your scene
 Hit "BEFRIEND" button at the top of the extension side panel 
-Customize its the settings vailable in the sidepanel.
+Customize its the settings available in the sidepanel.
 Create second camera, and befriend it also.
 Customize its the settings vailable in the sidepanel.
 Now when you switch between cameras (as in changing which one is currently the Active scene camera) 
