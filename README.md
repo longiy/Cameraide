@@ -13,8 +13,6 @@ Helpful for:
 - Quick playblasts with varying frame ranges
 - Avoiding manual settings adjustment when switching between cameras
 
-## Features
-
 ![Image Description](https://github.com/longiy/static-assets/blob/main/cameraide-assets/Cameraid_Preview.png)
 
 ## Features
