@@ -1,4 +1,4 @@
-# Cameraide v0.1.1.
+# Cameraide v0.1.1
 Cameraide fills the gap between Blender's basic render settings and complex render management systems. It's perfect for projects where you need more control than default settings offer, but don't want the overhead of a full render management pipeline.
 
 ## What it does
