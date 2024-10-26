@@ -1,4 +1,4 @@
-# cameraide
+# Cameraide
 Blender extension for extended output properties per camera object
 
 ## Overview
