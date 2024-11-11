@@ -11,7 +11,7 @@ def update_frame_end(self, context):
     if self.sync_frame_range and context.scene:
         context.scene.frame_end = self.frame_end
 
-class CameraideV2Settings(PropertyGroup):
+class CameraideSettings(PropertyGroup):
     # Basic Settings
     use_custom_settings: BoolProperty(
         name="Enable",
@@ -206,9 +206,9 @@ class CameraideV2Settings(PropertyGroup):
     )
 
 def register():
-    bpy.utils.register_class(CameraideV2Settings)
-    bpy.types.Camera.cameraide_settings = PointerProperty(type=CameraideV2Settings)
+    bpy.utils.register_class(CameraideSettings)
+    bpy.types.Camera.cameraide_settings = PointerProperty(type=CameraideSettings)
 
 def unregister():
     del bpy.types.Camera.cameraide_settings
-    bpy.utils.unregister_class(CameraideV2Settings)
+    bpy.utils.unregister_class(CameraideSettings)

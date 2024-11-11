@@ -32,7 +32,7 @@ class Cameraide_settings_3dview(Panel):
         row = layout.row()
         row.scale_y = 2.0
         if settings.use_custom_settings:
-            row.operator("camera.toggle_custom_settings", text=f"FRIEND: {camera_name}", icon='DECORATE', depress=True)
+            row.operator("camera.toggle_custom_settings", text=f"FRIEND: {camera_name}", icon='FUND', depress=True)
         else:
             row.operator("camera.toggle_custom_settings", text=f"BEFRIEND: {camera_name}", icon='DECORATE')
 
