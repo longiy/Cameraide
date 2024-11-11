@@ -3,7 +3,7 @@ from bpy.props import (IntProperty, StringProperty, EnumProperty,
                       BoolProperty, PointerProperty, FloatProperty)
 from bpy.types import PropertyGroup
 
-class CameraideSettings(PropertyGroup):
+class CameraideV2Settings(PropertyGroup):
     # Basic Settings
     use_custom_settings: BoolProperty(
         name="Enable",
@@ -39,16 +39,17 @@ class CameraideSettings(PropertyGroup):
         description="Synchronize viewport timeline with camera's frame range",
         default=False
     )
-    frame_start: IntProperty(
-        name="Start",
-        description="Custom start frame for this camera",
-        default=1
+    frame_start: bpy.props.IntProperty(
+        name="Start Frame",
+        default=1,
+        update=update_frame_start
     )
-    frame_end: IntProperty(
-        name="End",
-        description="Custom end frame for this camera",
-        default=250
+    frame_end: bpy.props.IntProperty(
+        name="End Frame",
+        default=250,
+        update=update_frame_end
     )
+
     frame_step: IntProperty(
         name="Step",
         description="Step between frames",
@@ -197,10 +198,12 @@ class CameraideSettings(PropertyGroup):
         default=True
     )
 
+
+
 def register():
-    bpy.utils.register_class(CameraideSettings)
-    bpy.types.Camera.cameraide_settings = PointerProperty(type=CameraideSettings)
+    bpy.utils.register_class(CameraideV2Settings)
+    bpy.types.Camera.cameraide_settings = PointerProperty(type=CameraideV2Settings)
 
 def unregister():
     del bpy.types.Camera.cameraide_settings
-    bpy.utils.unregister_class(CameraideSettings)
+    bpy.utils.unregister_class(CameraideV2Settings)
