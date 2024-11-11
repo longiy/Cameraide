@@ -3,6 +3,14 @@ from bpy.props import (IntProperty, StringProperty, EnumProperty,
                       BoolProperty, PointerProperty, FloatProperty)
 from bpy.types import PropertyGroup
 
+def update_frame_start(self, context):
+    if self.sync_frame_range and context.scene:
+        context.scene.frame_start = self.frame_start
+
+def update_frame_end(self, context):
+    if self.sync_frame_range and context.scene:
+        context.scene.frame_end = self.frame_end
+
 class CameraideV2Settings(PropertyGroup):
     # Basic Settings
     use_custom_settings: BoolProperty(
@@ -39,17 +47,16 @@ class CameraideV2Settings(PropertyGroup):
         description="Synchronize viewport timeline with camera's frame range",
         default=False
     )
-    frame_start: bpy.props.IntProperty(
+    frame_start: IntProperty(
         name="Start Frame",
         default=1,
         update=update_frame_start
     )
-    frame_end: bpy.props.IntProperty(
+    frame_end: IntProperty(
         name="End Frame",
         default=250,
         update=update_frame_end
     )
-
     frame_step: IntProperty(
         name="Step",
         description="Step between frames",
@@ -197,8 +204,6 @@ class CameraideV2Settings(PropertyGroup):
         description="Temporarily remove camera markers during rendering",
         default=True
     )
-
-
 
 def register():
     bpy.utils.register_class(CameraideV2Settings)

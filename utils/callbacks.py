@@ -1,5 +1,21 @@
 import bpy
 
+def update_viewport_resolution(context):
+    """Update the viewport resolution based on active camera settings"""
+    if context.scene.camera and context.scene.camera.data.cameraide_settings.use_custom_settings:
+        settings = context.scene.camera.data.cameraide_settings
+        # Update render resolution settings
+        context.scene.render.resolution_x = settings.resolution_x
+        context.scene.render.resolution_y = settings.resolution_y
+        context.scene.render.resolution_percentage = settings.resolution_percentage
+        
+        # Force viewport update
+        for area in context.screen.areas:
+            if area.type == 'VIEW_3D':
+                for region in area.regions:
+                    if region.type == 'WINDOW':
+                        region.tag_redraw()
+
 def on_active_camera_changed(scene):
     if scene.camera and scene.camera.data.cameraide_settings.use_custom_settings:
         settings = scene.camera.data.cameraide_settings
@@ -18,7 +34,6 @@ def on_active_camera_changed(scene):
     
     update_viewport_resolution(bpy.context)
 
-# Add a new handler for timeline changes
 def on_frame_change(scene):
     if scene.camera and scene.camera.data.cameraide_settings.use_custom_settings:
         settings = scene.camera.data.cameraide_settings
@@ -35,3 +50,5 @@ def register():
 def unregister():
     bpy.app.handlers.depsgraph_update_post.remove(on_active_camera_changed)
     bpy.app.handlers.frame_change_post.remove(on_frame_change)
+
+__all__ = ['update_viewport_resolution', 'on_active_camera_changed', 'on_frame_change']
