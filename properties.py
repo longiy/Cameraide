@@ -2,6 +2,11 @@ import bpy
 from bpy.props import (IntProperty, StringProperty, EnumProperty, 
                       BoolProperty, PointerProperty, FloatProperty)
 from bpy.types import PropertyGroup
+from .utils.callbacks import update_viewport_resolution
+
+def update_resolution(self, context):
+    if self.use_custom_settings:
+        update_viewport_resolution(context)
 
 def update_frame_start(self, context):
     if self.sync_frame_range and context.scene:
