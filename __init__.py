@@ -12,28 +12,20 @@ import bpy
 
 # Import all modules
 from . import properties
-from .panels import main_panel, sidebar_panel
-from .operators import resolution, frame_range, file_output, render
-from .utils import callbacks
+from . import operators
+from . import panels
+from . import utils
 
 def register():
     properties.register()
-    main_panel.register()
-    sidebar_panel.register()
-    resolution.register()
-    frame_range.register()
-    file_output.register()
-    render.register()
-    callbacks.register()
+    operators.register()
+    panels.register()
+    utils.register()
 
 def unregister():
-    callbacks.unregister()
-    render.unregister()
-    file_output.unregister()
-    frame_range.unregister()
-    resolution.unregister()
-    sidebar_panel.unregister()
-    main_panel.unregister()
+    utils.unregister()
+    panels.unregister()
+    operators.unregister()
     properties.unregister()
 
 if __name__ == "__main__":

@@ -1,9 +1,10 @@
+# In panels/sidebar_panel.py
 import bpy
 from bpy.types import Panel
 
-class Cameraide_settings_3dview(Panel):
+class CAMERAIDE_PT_sidebar_panel(Panel):
     bl_label = "Cameraide Settings"
-    bl_idname = "Cameraide_settings_3dview"
+    bl_idname = "CAMERAIDE_PT_sidebar_panel"  # Changed identifier
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "Camera"
@@ -14,6 +15,7 @@ class Cameraide_settings_3dview(Panel):
         return True
 
     def draw(self, context):
+        # Rest of the draw method remains the same...
         layout = self.layout
 
         if context.active_object and context.active_object.type == 'CAMERA':
@@ -102,7 +104,14 @@ class Cameraide_settings_3dview(Panel):
             row.operator("camera.render_selected_normal", text="Render Normal", icon="RENDER_ANIMATION")
 
 def register():
-    bpy.utils.register_class(Cameraide_settings_3dview)
+    try:
+        bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)
+    except:
+        pass
+    bpy.utils.register_class(CAMERAIDE_PT_sidebar_panel)
 
 def unregister():
-    bpy.utils.unregister_class(Cameraide_settings_3dview)
+    try:
+        bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)
+    except:
+        pass

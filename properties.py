@@ -2,19 +2,10 @@ import bpy
 from bpy.props import (IntProperty, StringProperty, EnumProperty, 
                       BoolProperty, PointerProperty, FloatProperty)
 from bpy.types import PropertyGroup
-from .utils.callbacks import update_viewport_resolution
-
-def update_resolution(self, context):
-    if self.use_custom_settings:
-        update_viewport_resolution(context)
-
-def update_frame_start(self, context):
-    if self.sync_frame_range and context.scene:
-        context.scene.frame_start = self.frame_start
-
-def update_frame_end(self, context):
-    if self.sync_frame_range and context.scene:
-        context.scene.frame_end = self.frame_end
+from .utils.callbacks import (
+    update_frame_start, 
+    update_frame_end
+)
 
 class CameraideSettings(PropertyGroup):
     # Basic Settings
@@ -47,11 +38,15 @@ class CameraideSettings(PropertyGroup):
     )
     
     # Frame Range Settings
-    sync_frame_range: BoolProperty(
-        name="Sync Frame Range",
-        description="Synchronize viewport timeline with camera's frame range",
-        default=False
+    stored_frame_start: IntProperty(
+        name="Stored Start Frame",
+        default=1
     )
+    stored_frame_end: IntProperty(
+        name="Stored End Frame",
+        default=250
+    )
+    
     frame_start: IntProperty(
         name="Start Frame",
         default=1,
@@ -62,11 +57,18 @@ class CameraideSettings(PropertyGroup):
         default=250,
         update=update_frame_end
     )
+    
     frame_step: IntProperty(
         name="Step",
         description="Step between frames",
         default=1,
         min=1
+    )
+    
+    sync_frame_range: BoolProperty(
+        name="Sync Frame Range",
+        description="Synchronize viewport timeline with camera's frame range",
+        default=False
     )
     
     # File Output Settings

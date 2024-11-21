@@ -1,9 +1,10 @@
+# In panels/main_panel.py
 import bpy
 from bpy.types import Panel
 
-class Cameraide_settings(Panel):
+class CAMERAIDE_PT_main_panel(Panel):
     bl_label = "Cameraide Settings"
-    bl_idname = "Cameraide_settings"
+    bl_idname = "CAMERAIDE_PT_main_panel"  # Changed identifier
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "data"
@@ -16,7 +17,7 @@ class Cameraide_settings(Panel):
         layout = self.layout
         scene = bpy.context.scene
 
-        # Determine which camera to use
+        # Rest of the draw method remains the same
         if context.active_object and context.active_object.type == 'CAMERA':
             cam = context.active_object.data
             camera_name = context.active_object.name
@@ -104,7 +105,14 @@ class Cameraide_settings(Panel):
             row.operator("camera.render_selected_normal", text="Render Normal", icon="RENDER_ANIMATION")
 
 def register():
-    bpy.utils.register_class(Cameraide_settings)
+    try:
+        bpy.utils.unregister_class(CAMERAIDE_PT_main_panel)
+    except:
+        pass
+    bpy.utils.register_class(CAMERAIDE_PT_main_panel)
 
 def unregister():
-    bpy.utils.unregister_class(Cameraide_settings)
+    try:
+        bpy.utils.unregister_class(CAMERAIDE_PT_main_panel)
+    except:
+        pass
