@@ -1,7 +1,7 @@
 # In operators/frame_range.py
 import bpy
 from bpy.types import Operator
-from ..utils.callbacks import update_viewport_resolution
+from ..utils.callbacks import update_viewport_resolution, on_sync_toggle
 
 class CAMERA_OT_toggle_frame_range_sync(Operator):
     bl_idname = "camera.toggle_frame_range_sync"
@@ -20,15 +20,7 @@ class CAMERA_OT_toggle_frame_range_sync(Operator):
         settings = cam.data.cameraide_settings
         settings.sync_frame_range = not settings.sync_frame_range
         
-        if settings.sync_frame_range:
-            # When enabling sync, apply camera's range to scene
-            context.scene.frame_start = settings.frame_start
-            context.scene.frame_end = settings.frame_end
-        else:
-            # When disabling sync, store current range
-            settings.stored_frame_start = settings.frame_start
-            settings.stored_frame_end = settings.frame_end
-        
+        on_sync_toggle(cam)
         update_viewport_resolution(context)
         
         return {'FINISHED'}

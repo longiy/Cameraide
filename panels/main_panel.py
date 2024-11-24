@@ -87,6 +87,30 @@ class CAMERAIDE_PT_main_panel(Panel):
                 row = col.row() 
                 row.prop(settings, "exr_codec", text="")
                 row.prop(settings, "exr_preview")
+            elif settings.file_format == 'FFMPEG':
+                col = layout.column(align=True)
+                col.prop(settings, "ffmpeg_format")
+                col.prop(settings, "ffmpeg_codec")
+                
+                # Quality settings
+                box = layout.box()
+                box.label(text="Quality")
+                col = box.column(align=True)
+                col.prop(settings, "ffmpeg_constant_rate_factor")
+                if settings.ffmpeg_constant_rate_factor == 'NONE':
+                    col.prop(settings, "ffmpeg_video_bitrate")
+                    col.prop(settings, "ffmpeg_minrate")
+                    col.prop(settings, "ffmpeg_maxrate")
+                    col.prop(settings, "ffmpeg_buffersize")
+                
+                # Encoding settings
+                box = layout.box()
+                box.label(text="Encoding")
+                col = box.column(align=True)
+                col.prop(settings, "ffmpeg_preset")
+                col.prop(settings, "ffmpeg_gopsize")
+                col.prop(settings, "ffmpeg_packetsize")
+                col.prop(settings, "ffmpeg_autosplit")
 
             layout.separator()
 
