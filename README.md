@@ -1,6 +1,7 @@
 # Cameraide 
 Cameraide fills the gap between Blender's basic render settings and complex render management systems. It's perfect for projects where you need more control than default settings offer, but don't want the overhead of a full render management pipeline.
 
+![Image Description](https://github.com/longiy/static-assets/blob/main/cameraide-assets/Cameraid_Preview.png)
 ## Cameraide v0.1.3
 - Added basic support for video export (MP4,MOV,MKV) with audio (MP3)
 - Rendering refactor, now it should be faster
@@ -24,7 +25,6 @@ Helpful for:
 - Quick play blasts with varying frame ranges
 - Avoiding manual settings adjustment when switching between cameras
 
-![Image Description](https://github.com/longiy/static-assets/blob/main/cameraide-assets/Cameraid_Preview.png)
 
 ## Features
 ### 🎥 Per-Camera Custom Settings
