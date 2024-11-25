@@ -1,5 +1,16 @@
-# Cameraide v0.1.2
+# Cameraide 
 Cameraide fills the gap between Blender's basic render settings and complex render management systems. It's perfect for projects where you need more control than default settings offer, but don't want the overhead of a full render management pipeline.
+
+## Cameraide v0.1.3
+- Added basic support for video export (MP4,MOV,MKV) with audio (MP3)
+- Rendering refactor, now it should be faster
+- Major, frame range sync improvement it should be more stable
+
+## Cameraide v0.1.2
+- Rendering refactor
+
+## Cameraide v0.1.1
+- Initial Release
 
 ## What it does
 
@@ -10,13 +21,12 @@ Saves render settings per camera, including:
 
 Helpful for:
 - Rendering multiple sequences with different settings from one file
-- Quick playblasts with varying frame ranges
+- Quick play blasts with varying frame ranges
 - Avoiding manual settings adjustment when switching between cameras
 
 ![Image Description](https://github.com/longiy/static-assets/blob/main/cameraide-assets/Cameraid_Preview.png)
 
 ## Features
-
 ### 🎥 Per-Camera Custom Settings
 - Enable/disable custom settings for each camera using the "BEFRIEND/FRIEND" toggle
 - Settings are preserved even when the camera is not active
@@ -43,9 +53,9 @@ Helpful for:
   - PNG
   - JPEG
   - OpenEXR
+  - FFMPEG (Video)
 
 ### 🎨 Format-Specific Settings
-
 #### PNG Options
 - Color modes: BW, RGB, RGBA
 - Color depth: 8-bit, 16-bit
@@ -68,6 +78,25 @@ Helpful for:
   - B44/B44A (lossy)
   - DWAA/DWAB (lossy)
 - Preview image generation option
+
+#### Video Output Options (FFMPEG)
+- Container formats:
+  - QuickTime
+  - MPEG-4
+  - Matroska
+- Video codecs:
+  - H.264/AVC
+  - PNG
+  - QuickTime Animation
+- Quality settings for H.264:
+  - Constant Rate Factor (CRF) presets: Lossless, Perceptually Lossless, High, Medium, Low
+  - Manual bitrate control with min/max rates
+  - GOP size adjustment
+  - Encoding speed presets: Fast, Medium, Slow
+- Audio options:
+  - Codec: MP3
+  - Configurable bitrate (32-384 kb/s)
+  - Option to disable audio
 
 ### 🎬 Rendering Features
 - Two rendering modes:
@@ -107,7 +136,7 @@ Standard rendering operators will use standard render and output settings.
 
 - Use the frame range sync feature to quickly preview camera-specific animations
 - Take advantage of the resolution swap button for quick aspect ratio changes
-- Enable "Include Camera Name" if you want to have them as a prefix
+- Enable "Include Camera Name" in filenames if you want to have them as prefix
 - Use the viewport renderer for quick previews and the normal renderer for final output
 - Enable "Ignore Markers" to temporarily hide timeline markers during rendering
 
@@ -126,4 +155,4 @@ For more information, see the LICENSE file or visit https://www.gnu.org/licenses
 
 ## Credits
 
-longiy bullied bunch of AI chabots 
+longiy bullied bunch of AI chabots
