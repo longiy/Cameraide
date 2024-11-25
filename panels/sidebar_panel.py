@@ -101,8 +101,8 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                     if settings.ffmpeg_constant_rate_factor == 'NONE':
                         col.prop(settings, "ffmpeg_video_bitrate")
                 
-                box = layout.box()
-                box.label(text="Audio")
+                # box = layout.box()
+                # box.label(text="Audio")
                 col = box.column(align=True)
                 col.prop(settings, "ffmpeg_audio_codec")
                 if settings.ffmpeg_audio_codec == 'MP3':

@@ -105,8 +105,8 @@ class CAMERAIDE_PT_main_panel(Panel):
                         col.prop(settings, "ffmpeg_maxrate")
                 
                 # Audio settings
-                box = layout.box()
-                box.label(text="Audio")
+                # box = layout.box()
+                # box.label(text="Audio")
                 col = box.column(align=True)
                 col.prop(settings, "ffmpeg_audio_codec")
                 if settings.ffmpeg_audio_codec == 'MP3':

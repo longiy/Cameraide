@@ -108,35 +108,27 @@ def update_frame_end(self, context):
             context.scene.frame_end = self.frame_end
             frame_manager.store_range(camera)
 
+@bpy.app.handlers.persistent
 def on_active_camera_changed(scene):
     """Handle camera switching"""
     if frame_manager.is_updating:
         return
 
     current_camera = scene.camera
-    previous_camera = frame_manager.previous_camera
-
-    if current_camera == previous_camera:
+    if not current_camera or current_camera.type != 'CAMERA':
         return
-
-    with prevent_recursive_update():
-        # Store previous camera's frame range
-        if previous_camera:
-            store_scene_range_to_camera(previous_camera, scene)
-
-        # Restore current camera's frame range
-        if current_camera:
-            settings = current_camera.data.cameraide_settings
-            if settings.use_custom_settings and settings.sync_frame_range:
-                stored = frame_manager.get_range(current_camera)
-                if stored:
-                    settings.frame_start = stored['start']
-                    settings.frame_end = stored['end']
-                apply_frame_range_to_scene(current_camera, scene)
+        
+    settings = current_camera.data.cameraide_settings
+    if settings.use_custom_settings and settings.sync_frame_range:
+        with prevent_recursive_update():
+            scene.frame_start = settings.frame_start
+            scene.frame_end = settings.frame_end
             frame_manager.store_range(current_camera)
     
     frame_manager.previous_camera = current_camera
     update_viewport_resolution(bpy.context)
+
+
 
 def on_befriend_toggle(camera_obj):
     """Handle befriend toggle"""
@@ -178,15 +170,15 @@ def on_sync_toggle(camera_obj):
         else:
             # On sync disable
             frame_manager.store_range(camera_obj)
-
 def register():
     frame_manager.clear()
-    bpy.app.handlers.depsgraph_update_pre.append(on_active_camera_changed)
+    if on_active_camera_changed not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(on_active_camera_changed)
 
 def unregister():
     frame_manager.clear()
-    bpy.app.handlers.depsgraph_update_pre.remove(on_active_camera_changed)
-
+    if on_active_camera_changed in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(on_active_camera_changed)
 __all__ = [
     'update_viewport_resolution',
     'update_frame_start',
