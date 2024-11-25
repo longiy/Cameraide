@@ -62,7 +62,7 @@ class CAMERAIDE_PT_main_panel(Panel):
                         depress=settings.sync_frame_range)
 
             # File Output
-            split = layout.split(factor=0.7)    
+            split = layout.split(factor=0.6)    
             col = split.column(heading="File Output")
             col.prop(settings, "output_folder", text="")
             col.prop(settings, "file_name", text="")
@@ -87,38 +87,30 @@ class CAMERAIDE_PT_main_panel(Panel):
                 row = col.row() 
                 row.prop(settings, "exr_codec", text="")
                 row.prop(settings, "exr_preview")
-            
             elif settings.file_format == 'FFMPEG':
-                col = layout.column(align=True)
-                col.prop(settings, "ffmpeg_format")
-                col.prop(settings, "ffmpeg_codec")
+                row = col.row() 
+                row.prop(settings, "exr_color_mode", text="")
+                row = col.row() 
+                row.prop(settings, "ffmpeg_format", text="")
+                row.prop(settings, "ffmpeg_codec", text="" )
                 
                 # Quality settings - only show for H.264
                 if settings.ffmpeg_codec == 'H264':
                     box = layout.box()
-                    box.label(text="Quality")
+                    box.label(text="Video Settings")
                     col = box.column(align=True)
                     col.prop(settings, "ffmpeg_constant_rate_factor")
+                    col.prop(settings, "ffmpeg_preset")
                     if settings.ffmpeg_constant_rate_factor == 'NONE':
                         col.prop(settings, "ffmpeg_video_bitrate")
                         col.prop(settings, "ffmpeg_minrate")
                         col.prop(settings, "ffmpeg_maxrate")
-                
-                # Audio settings
-                # box = layout.box()
-                # box.label(text="Audio")
+                        
                 col = box.column(align=True)
                 col.prop(settings, "ffmpeg_audio_codec")
                 if settings.ffmpeg_audio_codec == 'MP3':
                     col.prop(settings, "ffmpeg_audio_bitrate")
-                
-                # Encoding settings - show for all codecs
-                box = layout.box()
-                box.label(text="Encoding")
-                col = box.column(align=True)
-                col.prop(settings, "ffmpeg_preset")
-                if settings.ffmpeg_codec == 'H264':
-                    col.prop(settings, "ffmpeg_gopsize")
+
 
             layout.separator()
 
