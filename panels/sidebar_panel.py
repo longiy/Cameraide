@@ -87,16 +87,27 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                 row = layout.row(align=True)
                 row.prop(settings, "overwrite_existing")
                 row.prop(settings, "exr_preview")
+                
             elif settings.file_format == 'FFMPEG':
                 box = layout.box()
                 box.label(text="Video Settings")
                 col = box.column(align=True)
                 col.prop(settings, "ffmpeg_format")
                 col.prop(settings, "ffmpeg_codec")
-                col.prop(settings, "ffmpeg_constant_rate_factor")
-                if settings.ffmpeg_constant_rate_factor == 'NONE':
-                    col.prop(settings, "ffmpeg_video_bitrate")
-                    col.prop(settings, "ffmpeg_preset")
+                col.prop(settings, "ffmpeg_preset")
+                
+                if settings.ffmpeg_codec == 'H264':
+                    col.prop(settings, "ffmpeg_constant_rate_factor")
+                    if settings.ffmpeg_constant_rate_factor == 'NONE':
+                        col.prop(settings, "ffmpeg_video_bitrate")
+                
+                box = layout.box()
+                box.label(text="Audio")
+                col = box.column(align=True)
+                col.prop(settings, "ffmpeg_audio_codec")
+                if settings.ffmpeg_audio_codec == 'MP3':
+                    col.prop(settings, "ffmpeg_audio_bitrate")
+
 
             # Extra Settings
             box = layout.box()

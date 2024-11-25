@@ -144,21 +144,27 @@ class CAMERA_OT_render_selected_normal(Operator):
                 context.scene.render.ffmpeg.format = settings.ffmpeg_format
                 context.scene.render.ffmpeg.codec = settings.ffmpeg_codec
                 
-                # Set quality/bitrate
-                if settings.ffmpeg_constant_rate_factor == 'NONE':
-                    context.scene.render.ffmpeg.constant_rate_factor = 'NONE'
-                    context.scene.render.ffmpeg.video_bitrate = settings.ffmpeg_video_bitrate
-                    context.scene.render.ffmpeg.minrate = settings.ffmpeg_minrate
-                    context.scene.render.ffmpeg.maxrate = settings.ffmpeg_maxrate
-                    context.scene.render.ffmpeg.buffersize = settings.ffmpeg_buffersize
-                else:
-                    context.scene.render.ffmpeg.constant_rate_factor = settings.ffmpeg_constant_rate_factor
-                
-                # Set encoding settings
-                context.scene.render.ffmpeg.gopsize = settings.ffmpeg_gopsize
-                context.scene.render.ffmpeg.packet_size = settings.ffmpeg_packetsize
-                context.scene.render.ffmpeg.use_autosplit = settings.ffmpeg_autosplit
+                # Set encoding preset for all codecs
                 context.scene.render.ffmpeg.preset = settings.ffmpeg_preset
+                
+                # Set audio codec
+                context.scene.render.ffmpeg.audio_codec = settings.ffmpeg_audio_codec
+                if settings.ffmpeg_audio_codec == 'MP3':
+                    context.scene.render.ffmpeg.audio_bitrate = settings.ffmpeg_audio_bitrate
+                
+                # Set quality/bitrate only for H.264
+                if settings.ffmpeg_codec == 'H264':
+                    if settings.ffmpeg_constant_rate_factor == 'NONE':
+                        context.scene.render.ffmpeg.constant_rate_factor = 'NONE'
+                        context.scene.render.ffmpeg.video_bitrate = settings.ffmpeg_video_bitrate
+                        context.scene.render.ffmpeg.minrate = settings.ffmpeg_minrate
+                        context.scene.render.ffmpeg.maxrate = settings.ffmpeg_maxrate
+                    else:
+                        context.scene.render.ffmpeg.constant_rate_factor = settings.ffmpeg_constant_rate_factor
+                    context.scene.render.ffmpeg.gopsize = settings.ffmpeg_gopsize
+                else:
+                    # For lossless codecs, ensure we're using lossless settings
+                    context.scene.render.ffmpeg.constant_rate_factor = 'LOSSLESS'
         
 
             # Set the camera as active

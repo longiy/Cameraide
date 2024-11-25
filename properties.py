@@ -187,20 +187,13 @@ class CameraideSettings(PropertyGroup):
     )
     
     
-    # FFMPEG Settings
+ # FFMPEG Settings
     ffmpeg_format: EnumProperty(
         name="Container",
         description="Video container format",
         items=[
-            ('MPEG1', "MPEG-1", "Export as MPEG-1"),
-            ('MPEG2', "MPEG-2", "Export as MPEG-2"),
-            ('MPEG4', "MPEG-4", "Export as MPEG-4"),
-            ('AVI', "AVI", "Export as AVI"),
             ('QUICKTIME', "QuickTime", "Export as QuickTime"),
-            ('DV', "DV", "Export as DV"),
-            ('H264', "H.264", "Export as H.264"),
-            ('XVID', "Xvid", "Export as Xvid"),
-            ('OGG', "Ogg", "Export as Ogg"),
+            ('MPEG4', "MPEG-4", "Export as MPEG-4"),
             ('MKV', "Matroska", "Export as Matroska"),
         ],
         default='MPEG4'
@@ -210,16 +203,44 @@ class CameraideSettings(PropertyGroup):
         description="FFmpeg codec to use",
         items=[
             ('H264', "H.264", "H.264/AVC codec"),
-            ('MPEG4', "MPEG-4", "MPEG-4(divx) codec"),
-            ('MPEG1', "MPEG-1", "MPEG-1 codec"),
-            ('MPEG2', "MPEG-2", "MPEG-2 codec"),
-            ('MPEG3', "MPEG-3", "MPEG-3 codec"),
-            ('DV', "DV", "DV codec"),
-            ('THEORA', "Theora", "Theora codec"),
-            ('XVID', "Xvid", "Xvid codec"),
-            ('VP9', "VP9", "VP9 codec"),
+            ('PNG', "PNG", "PNG codec"),
+            ('QTRLE', "QuickTime Animation", "QuickTime Animation codec"),
         ],
         default='H264'
+    )
+    ffmpeg_audio: EnumProperty(
+        name="Audio",
+        description="Audio codec settings",
+        items=[
+            ('NONE', "No Audio", "Don't include audio"),
+            ('MP3', "MP3", "Include MP3 audio"),
+        ],
+        default='NONE'
+    )
+    ffmpeg_audio_bitrate: IntProperty(
+        name="Audio Bitrate",
+        description="Audio bitrate (kb/s)",
+        min=32,
+        max=384,
+        default=192,
+        subtype='NONE'
+    )
+    ffmpeg_audio_codec: EnumProperty(
+        name="Audio",
+        description="Audio codec to use",
+        items=[
+            ('NONE', "No Audio", "Don't include audio"),
+            ('MP3', "MP3", "Include MP3 audio"),
+        ],
+        default='NONE'
+    )
+    ffmpeg_audio_bitrate: IntProperty(
+        name="Audio Bitrate",
+        description="Audio bitrate (kb/s)",
+        min=32,
+        max=384,
+        default=192,
+        subtype='NONE'
     )
     ffmpeg_video_bitrate: IntProperty(
         name="Bitrate",
@@ -253,27 +274,6 @@ class CameraideSettings(PropertyGroup):
         default=12,
         subtype='NONE'
     )
-    ffmpeg_buffersize: IntProperty(
-        name="Buffer Size",
-        description="Rate control: buffer size (kb)",
-        min=0,
-        max=2000,
-        default=0,
-        subtype='NONE'
-    )
-    ffmpeg_packetsize: IntProperty(
-        name="Mux Rate",
-        description="Mux rate (kb/s)",
-        min=0,
-        max=100000,
-        default=2048,
-        subtype='NONE'
-    )
-    ffmpeg_autosplit: BoolProperty(
-        name="Autosplit Output",
-        description="Automatically split output at 2GB boundaries",
-        default=False
-    )
     ffmpeg_constant_rate_factor: EnumProperty(
         name="Output Quality",
         description="Constant Rate Factor (CRF) - lower values for better quality",
@@ -289,17 +289,11 @@ class CameraideSettings(PropertyGroup):
     )
     ffmpeg_preset: EnumProperty(
         name="Encoding Speed",
-        description="Encoding speed preset - slower is better quality",
+        description="Encoding speed preset - slower is better quality for same file size",
         items=[
-            ('ULTRAFAST', 'Ultrafast', 'Fastest encoding, lowest compression'),
-            ('SUPERFAST', 'Superfast', 'Very fast encoding'),
-            ('VERYFAST', 'Veryfast', 'Fast encoding'),
-            ('FASTER', 'Faster', 'Fast encoding, good compression'),
-            ('FAST', 'Fast', 'Fast encoding, better compression'),
-            ('MEDIUM', 'Medium', 'Medium encoding speed and compression'),
-            ('SLOW', 'Slow', 'Slow encoding, better quality'),
-            ('SLOWER', 'Slower', 'Very slow encoding, better quality'),
-            ('VERYSLOW', 'Veryslow', 'Slowest encoding, best quality'),
+            ('FAST', 'Fast', 'Fast encoding, lower compression'),
+            ('MEDIUM', 'Medium', 'Balanced speed and compression'),
+            ('SLOW', 'Slow', 'Slow encoding, better compression'),
         ],
         default='MEDIUM'
     )
