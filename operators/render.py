@@ -7,9 +7,51 @@ class CAMERA_OT_render_selected_viewport(Operator):
     bl_label = "Render Viewport"
     bl_description = "Render animation using viewport renderer"
     
+    _timer = None
+    _original_settings = None
+    _is_rendering = False
+    
     @classmethod
     def poll(cls, context):
         return context.active_object and context.active_object.type == 'CAMERA'
+    
+    def modal(self, context, event):
+        if event.type == 'ESC':
+            self.cancel(context)
+            return {'CANCELLED'}
+            
+        if event.type == 'TIMER':
+            # Check if render is still in progress
+            if not self._is_rendering:
+                self.cleanup(context)
+                return {'FINISHED'}
+                
+        return {'PASS_THROUGH'}
+        
+    def cleanup(self, context):
+        # Remove timer
+        if self._timer is not None:
+            context.window_manager.event_timer_remove(self._timer)
+            self._timer = None
+            
+        # Restore original settings
+        if self._original_settings:
+            for key, value in self._original_settings.items():
+                if hasattr(context.scene.render.ffmpeg, key):
+                    setattr(context.scene.render.ffmpeg, key, value)
+                elif hasattr(context.scene.render, key):
+                    setattr(context.scene.render, key, value)
+                elif hasattr(context.scene, key):
+                    setattr(context.scene, key, value)
+            
+    def cancel(self, context):
+        if self._is_rendering:
+            # Stop the viewport render
+            bpy.ops.render.opengl('INVOKE_DEFAULT', animation=False)
+            self._is_rendering = False
+            
+        self.cleanup(context)
+        self.report({'INFO'}, "Render cancelled")
 
     def execute(self, context):
         cam_obj = context.active_object
@@ -19,7 +61,7 @@ class CAMERA_OT_render_selected_viewport(Operator):
             return {'CANCELLED'}
 
         # Store original settings
-        original_settings = {
+        self._original_settings = {
             'frame_start': context.scene.frame_start,
             'frame_end': context.scene.frame_end,
             'filepath': context.scene.render.filepath,
@@ -84,37 +126,20 @@ class CAMERA_OT_render_selected_viewport(Operator):
             filepath = os.path.join(bpy.path.abspath(settings.output_folder), filename)
             context.scene.render.filepath = filepath
 
+            # Start modal timer
+            self._timer = context.window_manager.event_timer_add(0.1, window=context.window)
+            context.window_manager.modal_handler_add(self)
+            
             # Start render
-            bpy.ops.render.opengl(animation=True)
+            self._is_rendering = True
+            bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True)
 
-            return {'FINISHED'}
+            return {'RUNNING_MODAL'}
 
         except Exception as e:
             self.report({'ERROR'}, f"Render failed: {str(e)}")
+            self.cleanup(context)
             return {'CANCELLED'}
-
-        finally:
-            # Restore original settings
-            context.scene.frame_start = original_settings['frame_start']
-            context.scene.frame_end = original_settings['frame_end']
-            context.scene.frame_step = original_settings['frame_step']
-            context.scene.render.filepath = original_settings['filepath']
-            context.scene.render.resolution_x = original_settings['resolution_x']
-            context.scene.render.resolution_y = original_settings['resolution_y']
-            context.scene.render.resolution_percentage = original_settings['resolution_percentage']
-            context.scene.render.film_transparent = original_settings['film_transparent']
-            context.scene.render.use_stamp = original_settings['use_stamp']
-            context.scene.render.image_settings.file_format = original_settings['file_format']
-            
-            # Restore FFMPEG settings
-            if original_settings['ffmpeg_format']:
-                context.scene.render.ffmpeg.format = original_settings['ffmpeg_format']
-            if original_settings['ffmpeg_codec']:
-                context.scene.render.ffmpeg.codec = original_settings['ffmpeg_codec']
-            if original_settings['ffmpeg_audio_codec']:
-                context.scene.render.ffmpeg.audio_codec = original_settings['ffmpeg_audio_codec']
-            if original_settings['ffmpeg_preset']:
-                context.scene.render.ffmpeg.preset = original_settings['ffmpeg_preset']
 
 class CAMERA_OT_render_selected_normal(Operator):
     bl_idname = "camera.render_selected_normal"
