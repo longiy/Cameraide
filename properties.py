@@ -96,16 +96,6 @@ class CameraideSettings(PropertyGroup):
     )
     
     # PNG Settings
-    png_color_mode: EnumProperty(
-        name="Color Mode",
-        description="Color mode for PNG output",
-        items=[
-            ('BW', "BW", "Greyscale"),
-            ('RGB', "RGB", "RGB"),
-            ('RGBA', "RGBA", "RGB with Alpha"),
-        ],
-        default='RGBA'
-    )
     png_color_depth: EnumProperty(
         name="Color Depth",
         description="Color depth for PNG output",
@@ -125,15 +115,6 @@ class CameraideSettings(PropertyGroup):
     )
     
     # JPEG Settings
-    jpeg_color_mode: EnumProperty(
-        name="Color Mode",
-        description="Color mode for JPEG output",
-        items=[
-            ('BW', "BW", "Greyscale"),
-            ('RGB', "RGB", "RGB"),
-        ],
-        default='RGB'
-    )
     jpeg_quality: IntProperty(
         name="Quality",
         description="JPEG quality level",
@@ -144,16 +125,6 @@ class CameraideSettings(PropertyGroup):
     )
     
     # EXR Settings
-    exr_color_mode: EnumProperty(
-        name="Color Mode",
-        description="Color mode for EXR output",
-        items=[
-            ('BW', "BW", "Greyscale"),
-            ('RGB', "RGB", "RGB"),
-            ('RGBA', "RGBA", "RGB with Alpha"),
-        ],
-        default='RGBA'
-    )
     exr_color_depth: EnumProperty(
         name="Color Depth",
         description="Color depth for EXR output",

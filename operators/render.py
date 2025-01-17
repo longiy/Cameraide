@@ -1,4 +1,3 @@
-# render.py
 import bpy
 import os
 from bpy.types import Operator
@@ -8,13 +7,6 @@ class RenderCleanupManager:
     
     _original_settings = None
     _current_camera = None
-    
-    # Color mode mapping from addon values to Blender's internal values
-    COLOR_MODE_MAPPING = {
-        'BW': 'BW',  # Greyscale
-        'RGB': 'RGB',
-        'RGBA': 'RGBA'
-    }
     
     @classmethod
     def store_settings(cls, context):
@@ -77,16 +69,6 @@ class RenderCleanupManager:
             cls._original_settings = None
     
     @classmethod
-    def _setup_bw_color_settings(cls, context):
-        """Set up color management for BW output"""
-        # Set color management settings for black and white
-        context.scene.view_settings.view_transform = 'Standard'
-        context.scene.view_settings.look = 'None'
-        context.scene.view_settings.exposure = 0
-        context.scene.view_settings.gamma = 1.0
-        context.scene.view_settings.use_curve_mapping = True
-    
-    @classmethod
     def apply_camera_settings(cls, context, cam_obj):
         """Apply camera settings to render"""
         settings = cam_obj.data.cameraide_settings
@@ -118,42 +100,22 @@ class RenderCleanupManager:
     
     @classmethod
     def _apply_format_settings(cls, context, settings):
-        """Apply format-specific settings including color modes"""
+        """Apply format-specific settings"""
         image_settings = context.scene.render.image_settings
         
         if settings.file_format == 'PNG':
-            # Apply PNG settings
-            color_mode = settings.png_color_mode
-            image_settings.color_mode = cls.COLOR_MODE_MAPPING.get(color_mode, 'RGB')
+            image_settings.color_mode = 'RGBA'
             image_settings.color_depth = settings.png_color_depth
             image_settings.compression = settings.png_compression
             
-            # Set up BW color management if needed
-            if color_mode == 'BW':
-                cls._setup_bw_color_settings(context)
-            
         elif settings.file_format == 'JPEG':
-            # Apply JPEG settings
-            color_mode = settings.jpeg_color_mode
-            image_settings.color_mode = cls.COLOR_MODE_MAPPING.get(color_mode, 'RGB')
+            image_settings.color_mode = 'RGB'
             image_settings.quality = settings.jpeg_quality
             
-            # Set up BW color management if needed
-            if color_mode == 'BW':
-                cls._setup_bw_color_settings(context)
-            
         elif settings.file_format == 'OPEN_EXR':
-            # Apply EXR settings
-            color_mode = settings.exr_color_mode
-            image_settings.color_mode = cls.COLOR_MODE_MAPPING.get(color_mode, 'RGB')
+            image_settings.color_mode = 'RGBA'
             image_settings.color_depth = settings.exr_color_depth
             image_settings.exr_codec = settings.exr_codec
-            
-            # Set up BW color management if needed
-            if color_mode == 'BW':
-                cls._setup_bw_color_settings(context)
-                
-            # Handle preview setting if needed
             if hasattr(image_settings, 'use_preview'):
                 image_settings.use_preview = settings.exr_preview
     

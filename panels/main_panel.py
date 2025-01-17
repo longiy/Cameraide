@@ -73,23 +73,18 @@ class CAMERAIDE_PT_main_panel(Panel):
 
             # Format-specific options
             if settings.file_format == 'PNG':
-                col.prop(settings, "png_color_mode", text="")
                 row = col.row()   
                 row.prop(settings, "png_color_depth", text="")
                 row.prop(settings, "png_compression", slider=True)
             elif settings.file_format == 'JPEG':
-                col.prop(settings, "jpeg_color_mode", text="")
                 col.prop(settings, "jpeg_quality", slider=True)
             elif settings.file_format == 'OPEN_EXR':
                 row = col.row() 
-                row.prop(settings, "exr_color_mode", text="")
                 row.prop(settings, "exr_color_depth", text="")
                 row = col.row() 
                 row.prop(settings, "exr_codec", text="")
                 row.prop(settings, "exr_preview")
             elif settings.file_format == 'FFMPEG':
-                row = col.row() 
-                row.prop(settings, "exr_color_mode", text="")
                 row = col.row() 
                 row.prop(settings, "ffmpeg_format", text="")
                 row.prop(settings, "ffmpeg_codec", text="" )

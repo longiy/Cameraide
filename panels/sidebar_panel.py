@@ -68,7 +68,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             layout.prop(settings, "file_name", text="")
             row = layout.row(align=True)
             row.prop(settings, "file_format", text="")
-            row.prop(settings, "png_color_mode", text="")
 
             # Format-specific options
             if settings.file_format == 'PNG':
