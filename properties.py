@@ -33,7 +33,7 @@ class CameraideSettings(PropertyGroup):
         description="Resolution scaling percentage",
         default=100,
         min=1,
-        max=100,
+        max=400,
         subtype='PERCENTAGE'
     )
     
