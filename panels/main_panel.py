@@ -84,27 +84,15 @@ class CAMERAIDE_PT_main_panel(Panel):
                 row = col.row() 
                 row.prop(settings, "exr_codec", text="")
                 row.prop(settings, "exr_preview")
+            
             elif settings.file_format == 'FFMPEG':
-                row = col.row() 
-                row.prop(settings, "ffmpeg_format", text="")
-                row.prop(settings, "ffmpeg_codec", text="" )
+                box = layout.box()
+                box.label(text="Video Settings")
+                row = box.row(align=True)
+                row.prop(settings, "ffmpeg_format")
                 
-                # Quality settings - only show for H.264
-                if settings.ffmpeg_codec == 'H264':
-                    box = layout.box()
-                    box.label(text="Video Settings")
-                    col = box.column(align=True)
-                    col.prop(settings, "ffmpeg_constant_rate_factor")
-                    col.prop(settings, "ffmpeg_preset")
-                    if settings.ffmpeg_constant_rate_factor == 'NONE':
-                        col.prop(settings, "ffmpeg_video_bitrate")
-                        col.prop(settings, "ffmpeg_minrate")
-                        col.prop(settings, "ffmpeg_maxrate")
-                        
-                col = box.column(align=True)
-                col.prop(settings, "ffmpeg_audio_codec")
-                if settings.ffmpeg_audio_codec == 'MP3':
-                    col.prop(settings, "ffmpeg_audio_bitrate")
+            # Simple audio toggle
+                box.prop(settings, "use_audio", text="Include MP3 Audio (192kb/s)")
 
 
             layout.separator()

@@ -158,60 +158,40 @@ class CameraideSettings(PropertyGroup):
     )
     
     
- # FFMPEG Settings
+# FFMPEG Settings
     ffmpeg_format: EnumProperty(
-        name="Container",
+        name="Format",
         description="Video container format",
         items=[
-            ('QUICKTIME', "QuickTime", "Export as QuickTime"),
-            ('MPEG4', "MPEG-4", "Export as MPEG-4"),
-            ('MKV', "Matroska", "Export as Matroska"),
+            ('MOV', "QuickTime (.mov)", "Export as QuickTime with Animation codec (lossless)"),
+            ('MP4', "MPEG-4 (.mp4)", "Export as MP4 with H.264 codec (high quality)"),
+            ('MKV', "Matroska (.mkv)", "Export as Matroska with H.264 codec (high quality)"),
         ],
-        default='MPEG4'
+        default='MP4'
     )
+    
+    # Hidden but needed properties for internal functionality
     ffmpeg_codec: EnumProperty(
         name="Codec",
         description="FFmpeg codec to use",
         items=[
             ('H264', "H.264", "H.264/AVC codec"),
-            ('PNG', "PNG", "PNG codec"),
             ('QTRLE', "QuickTime Animation", "QuickTime Animation codec"),
         ],
         default='H264'
     )
-    ffmpeg_audio: EnumProperty(
-        name="Audio",
-        description="Audio codec settings",
+    ffmpeg_constant_rate_factor: EnumProperty(
+        name="Output Quality",
+        description="Constant Rate Factor (CRF) - lower values for better quality",
         items=[
-            ('NONE', "No Audio", "Don't include audio"),
-            ('MP3', "MP3", "Include MP3 audio"),
+            ('NONE', 'Constant Bitrate', 'Specify bitrate instead of quality'),
+            ('LOSSLESS', 'Lossless', 'Use lossless encoding'),
+            ('PERC_LOSSLESS', 'Perceptually Lossless', 'High quality, nearly lossless'),
+            ('HIGH', 'High Quality', 'High quality'),
+            ('MEDIUM', 'Medium Quality', 'Medium quality'),
+            ('LOW', 'Low Quality', 'Low quality'),
         ],
-        default='NONE'
-    )
-    ffmpeg_audio_bitrate: IntProperty(
-        name="Audio Bitrate",
-        description="Audio bitrate (kb/s)",
-        min=32,
-        max=384,
-        default=192,
-        subtype='NONE'
-    )
-    ffmpeg_audio_codec: EnumProperty(
-        name="Audio",
-        description="Audio codec to use",
-        items=[
-            ('NONE', "No Audio", "Don't include audio"),
-            ('MP3', "MP3", "Include MP3 audio"),
-        ],
-        default='NONE'
-    )
-    ffmpeg_audio_bitrate: IntProperty(
-        name="Audio Bitrate",
-        description="Audio bitrate (kb/s)",
-        min=32,
-        max=384,
-        default=192,
-        subtype='NONE'
+        default='HIGH'
     )
     ffmpeg_video_bitrate: IntProperty(
         name="Bitrate",
@@ -245,28 +225,31 @@ class CameraideSettings(PropertyGroup):
         default=12,
         subtype='NONE'
     )
-    ffmpeg_constant_rate_factor: EnumProperty(
-        name="Output Quality",
-        description="Constant Rate Factor (CRF) - lower values for better quality",
-        items=[
-            ('NONE', 'Constant Bitrate', 'Specify bitrate instead of quality'),
-            ('LOSSLESS', 'Lossless', 'Use lossless encoding'),
-            ('PERC_LOSSLESS', 'Perceptually Lossless', 'High quality, nearly lossless'),
-            ('HIGH', 'High Quality', 'High quality'),
-            ('MEDIUM', 'Medium Quality', 'Medium quality'),
-            ('LOW', 'Low Quality', 'Low quality'),
-        ],
-        default='HIGH'
+    
+    use_audio: BoolProperty(
+        name="Include Audio",
+        description="Include MP3 audio in the rendered video",
+        default=False
     )
-    ffmpeg_preset: EnumProperty(
-        name="Encoding Speed",
-        description="Encoding speed preset - slower is better quality for same file size",
+    
+    
+    # Audio settings (visible in UI)
+    ffmpeg_audio_codec: EnumProperty(
+        name="Audio",
+        description="Audio codec settings",
         items=[
-            ('FAST', 'Fast', 'Fast encoding, lower compression'),
-            ('MEDIUM', 'Medium', 'Balanced speed and compression'),
-            ('SLOW', 'Slow', 'Slow encoding, better compression'),
+            ('NONE', "No Audio", "Don't include audio"),
+            ('MP3', "MP3", "Include MP3 audio"),
         ],
-        default='MEDIUM'
+        default='NONE'
+    )
+    ffmpeg_audio_bitrate: IntProperty(
+        name="Audio Bitrate",
+        description="Audio bitrate (kb/s)",
+        min=32,
+        max=384,
+        default=192,
+        subtype='NONE'
     )
     
     

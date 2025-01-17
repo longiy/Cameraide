@@ -23,10 +23,6 @@ class RenderCleanupManager:
             'frame_step': context.scene.frame_step,
             'file_format': context.scene.render.image_settings.file_format,
             'color_mode': context.scene.render.image_settings.color_mode,
-            'color_depth': context.scene.render.image_settings.color_depth if hasattr(context.scene.render.image_settings, 'color_depth') else None,
-            'compression': context.scene.render.image_settings.compression if hasattr(context.scene.render.image_settings, 'compression') else None,
-            'quality': context.scene.render.image_settings.quality if hasattr(context.scene.render.image_settings, 'quality') else None,
-            'exr_codec': context.scene.render.image_settings.exr_codec if hasattr(context.scene.render.image_settings, 'exr_codec') else None,
             # Store view transform settings
             'view_transform': context.scene.view_settings.view_transform,
             'look': context.scene.view_settings.look,
@@ -41,7 +37,11 @@ class RenderCleanupManager:
                 'ffmpeg_format': context.scene.render.ffmpeg.format,
                 'ffmpeg_codec': context.scene.render.ffmpeg.codec,
                 'ffmpeg_audio_codec': context.scene.render.ffmpeg.audio_codec,
-                'ffmpeg_preset': context.scene.render.ffmpeg.preset if hasattr(context.scene.render.ffmpeg, 'preset') else None
+                'ffmpeg_video_bitrate': context.scene.render.ffmpeg.video_bitrate,
+                'ffmpeg_minrate': context.scene.render.ffmpeg.minrate,
+                'ffmpeg_maxrate': context.scene.render.ffmpeg.maxrate,
+                'ffmpeg_gopsize': context.scene.render.ffmpeg.gopsize,
+                'ffmpeg_audio_bitrate': context.scene.render.ffmpeg.audio_bitrate
             }
             cls._original_settings.update(ffmpeg_settings)
     
@@ -123,27 +123,46 @@ class RenderCleanupManager:
     def _apply_ffmpeg_settings(cls, context, settings):
         """Apply FFMPEG-specific settings"""
         context.scene.render.image_settings.file_format = 'FFMPEG'
-        context.scene.render.ffmpeg.format = settings.ffmpeg_format
-        context.scene.render.ffmpeg.codec = settings.ffmpeg_codec
-        context.scene.render.ffmpeg.audio_codec = settings.ffmpeg_audio_codec
+        context.scene.render.image_settings.color_mode = 'RGB'
         
-        if settings.ffmpeg_audio_codec == 'MP3':
-            context.scene.render.ffmpeg.audio_bitrate = settings.ffmpeg_audio_bitrate
+        # Set format-specific settings
+        if settings.ffmpeg_format == 'MOV':
+            # QuickTime with Animation codec
+            context.scene.render.ffmpeg.format = 'QUICKTIME'
+            context.scene.render.ffmpeg.codec = 'QTRLE'
+            # Configure for lossless quality
+            if hasattr(context.scene.render.ffmpeg, 'constant_rate_factor'):
+                context.scene.render.ffmpeg.constant_rate_factor = 'LOSSLESS'
+            context.scene.render.ffmpeg.gopsize = 1  # Each frame is a keyframe
             
-        if hasattr(context.scene.render.ffmpeg, 'preset'):
-            context.scene.render.ffmpeg.preset = settings.ffmpeg_preset
+        elif settings.ffmpeg_format == 'MP4':
+            # MPEG-4 with H.264
+            context.scene.render.ffmpeg.format = 'MPEG4'
+            context.scene.render.ffmpeg.codec = 'H264'
+            if hasattr(context.scene.render.ffmpeg, 'constant_rate_factor'):
+                context.scene.render.ffmpeg.constant_rate_factor = 'HIGH'
+            context.scene.render.ffmpeg.video_bitrate = 6000
+            context.scene.render.ffmpeg.minrate = 0
+            context.scene.render.ffmpeg.maxrate = 9000
+            context.scene.render.ffmpeg.gopsize = 12
             
-        if settings.ffmpeg_codec == 'H264':
-            if settings.ffmpeg_constant_rate_factor == 'NONE':
-                context.scene.render.ffmpeg.constant_rate_factor = 'NONE'
-                context.scene.render.ffmpeg.video_bitrate = settings.ffmpeg_video_bitrate
-                context.scene.render.ffmpeg.minrate = settings.ffmpeg_minrate
-                context.scene.render.ffmpeg.maxrate = settings.ffmpeg_maxrate
-            else:
-                context.scene.render.ffmpeg.constant_rate_factor = settings.ffmpeg_constant_rate_factor
-            context.scene.render.ffmpeg.gopsize = settings.ffmpeg_gopsize
+        else:  # MKV
+            # Matroska with H.264
+            context.scene.render.ffmpeg.format = 'MKV'  # Changed from 'MATROSKA' to 'MKV'
+            context.scene.render.ffmpeg.codec = 'H264'
+            if hasattr(context.scene.render.ffmpeg, 'constant_rate_factor'):
+                context.scene.render.ffmpeg.constant_rate_factor = 'HIGH'
+            context.scene.render.ffmpeg.video_bitrate = 6000
+            context.scene.render.ffmpeg.minrate = 0
+            context.scene.render.ffmpeg.maxrate = 9000
+            context.scene.render.ffmpeg.gopsize = 12
+        
+        # Simplified audio settings
+        if settings.use_audio:
+            context.scene.render.ffmpeg.audio_codec = 'MP3'
+            context.scene.render.ffmpeg.audio_bitrate = 192
         else:
-            context.scene.render.ffmpeg.constant_rate_factor = 'LOSSLESS'
+            context.scene.render.ffmpeg.audio_codec = 'NONE'
 
 
 def render_complete_handler(scene, depsgraph):
