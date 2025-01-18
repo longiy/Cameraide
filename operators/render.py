@@ -31,20 +31,47 @@ class RenderCleanupManager:
             'use_curve_mapping': context.scene.view_settings.use_curve_mapping
         }
         
-        # Store FFMPEG settings only if they exist
-        if context.scene.render.image_settings.file_format == 'FFMPEG':
-            ffmpeg_settings = {
-                'ffmpeg_format': context.scene.render.ffmpeg.format,
-                'ffmpeg_codec': context.scene.render.ffmpeg.codec,
-                'ffmpeg_audio_codec': context.scene.render.ffmpeg.audio_codec,
-                'ffmpeg_video_bitrate': context.scene.render.ffmpeg.video_bitrate,
-                'ffmpeg_minrate': context.scene.render.ffmpeg.minrate,
-                'ffmpeg_maxrate': context.scene.render.ffmpeg.maxrate,
-                'ffmpeg_gopsize': context.scene.render.ffmpeg.gopsize,
-                'ffmpeg_audio_bitrate': context.scene.render.ffmpeg.audio_bitrate
-            }
-            cls._original_settings.update(ffmpeg_settings)
-    
+        # Store format-specific settings if needed
+        current_format = context.scene.render.image_settings.file_format
+        if current_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
+            cls._store_image_settings(context)
+        elif current_format == 'FFMPEG':
+            cls._store_video_settings(context)
+
+    @classmethod
+    def _store_image_settings(cls, context):
+        """Store image format specific settings"""
+        image_settings = context.scene.render.image_settings
+        format_settings = {}
+        
+        if hasattr(image_settings, 'color_depth'):
+            format_settings['color_depth'] = image_settings.color_depth
+        if hasattr(image_settings, 'compression'):
+            format_settings['compression'] = image_settings.compression
+        if hasattr(image_settings, 'quality'):
+            format_settings['quality'] = image_settings.quality
+        if hasattr(image_settings, 'exr_codec'):
+            format_settings['exr_codec'] = image_settings.exr_codec
+        if hasattr(image_settings, 'use_preview'):
+            format_settings['use_preview'] = image_settings.use_preview
+        
+        cls._original_settings.update(format_settings)
+
+    @classmethod
+    def _store_video_settings(cls, context):
+        """Store video format specific settings"""
+        ffmpeg = context.scene.render.ffmpeg
+        cls._original_settings.update({
+            'ffmpeg_format': ffmpeg.format,
+            'ffmpeg_codec': ffmpeg.codec,
+            'ffmpeg_video_bitrate': ffmpeg.video_bitrate,
+            'ffmpeg_minrate': ffmpeg.minrate,
+            'ffmpeg_maxrate': ffmpeg.maxrate,
+            'ffmpeg_gopsize': ffmpeg.gopsize,
+            'ffmpeg_audio_codec': ffmpeg.audio_codec,
+            'ffmpeg_audio_bitrate': ffmpeg.audio_bitrate
+        })
+        
     @classmethod
     def restore_settings(cls, context):
         """Restore original render settings"""
@@ -83,72 +110,61 @@ class RenderCleanupManager:
         context.scene.render.resolution_percentage = settings.resolution_percentage
         context.scene.render.film_transparent = settings.film_transparent
         context.scene.render.use_stamp = settings.burn_metadata
+
+        # Construct full output path
+        base_path = bpy.path.abspath(settings.output_path)
+        subfolder = settings.output_subfolder
+        filename = settings.output_filename if not settings.include_camera_name else f"{cam_obj.name}_{settings.output_filename}"
+        filepath = os.path.join(base_path, subfolder, filename)
+        context.scene.render.filepath = filepath
         
         # Format settings
-        if settings.file_format == 'FFMPEG':
-            cls._apply_ffmpeg_settings(context, settings)
-        else:
-            context.scene.render.image_settings.file_format = settings.file_format
+        if settings.output_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
+            context.scene.render.image_settings.file_format = settings.output_format
             # Apply format-specific settings
             cls._apply_format_settings(context, settings)
-            
-        # Output path
-        filename = f"{cam_obj.name}_" if settings.include_camera_name else ""
-        filename += settings.file_name
-        filepath = os.path.join(bpy.path.abspath(settings.output_folder), filename)
-        context.scene.render.filepath = filepath
-    
+        else:  # Video formats
+            context.scene.render.image_settings.file_format = 'FFMPEG'
+            cls._apply_video_settings(context, settings)
+
     @classmethod
     def _apply_format_settings(cls, context, settings):
         """Apply format-specific settings"""
         image_settings = context.scene.render.image_settings
         
-        if settings.file_format == 'PNG':
+        if settings.output_format == 'PNG':
             image_settings.color_mode = 'RGBA'
             image_settings.color_depth = settings.png_color_depth
             image_settings.compression = settings.png_compression
             
-        elif settings.file_format == 'JPEG':
+        elif settings.output_format == 'JPEG':
             image_settings.color_mode = 'RGB'
             image_settings.quality = settings.jpeg_quality
             
-        elif settings.file_format == 'OPEN_EXR':
+        elif settings.output_format == 'OPEN_EXR':
             image_settings.color_mode = 'RGBA'
             image_settings.color_depth = settings.exr_color_depth
             image_settings.exr_codec = settings.exr_codec
             if hasattr(image_settings, 'use_preview'):
                 image_settings.use_preview = settings.exr_preview
-    
+
     @classmethod
-    def _apply_ffmpeg_settings(cls, context, settings):
-        """Apply FFMPEG-specific settings"""
-        context.scene.render.image_settings.file_format = 'FFMPEG'
-        context.scene.render.image_settings.color_mode = 'RGB'
+    def _apply_video_settings(cls, context, settings):
+        """Apply video-specific settings"""
+        context.scene.render.ffmpeg.format = {
+            'MP4': 'MPEG4',
+            'MKV': 'MKV',
+            'MOV': 'QUICKTIME'
+        }[settings.output_format]
         
-        # Set format-specific settings
-        if settings.ffmpeg_format == 'MOV':
+        if settings.output_format == 'MOV':
             # QuickTime with Animation codec
-            context.scene.render.ffmpeg.format = 'QUICKTIME'
             context.scene.render.ffmpeg.codec = 'QTRLE'
-            # Configure for lossless quality
             if hasattr(context.scene.render.ffmpeg, 'constant_rate_factor'):
                 context.scene.render.ffmpeg.constant_rate_factor = 'LOSSLESS'
-            context.scene.render.ffmpeg.gopsize = 1  # Each frame is a keyframe
-            
-        elif settings.ffmpeg_format == 'MP4':
-            # MPEG-4 with H.264
-            context.scene.render.ffmpeg.format = 'MPEG4'
-            context.scene.render.ffmpeg.codec = 'H264'
-            if hasattr(context.scene.render.ffmpeg, 'constant_rate_factor'):
-                context.scene.render.ffmpeg.constant_rate_factor = 'HIGH'
-            context.scene.render.ffmpeg.video_bitrate = 6000
-            context.scene.render.ffmpeg.minrate = 0
-            context.scene.render.ffmpeg.maxrate = 9000
-            context.scene.render.ffmpeg.gopsize = 12
-            
-        else:  # MKV
-            # Matroska with H.264
-            context.scene.render.ffmpeg.format = 'MKV'  # Changed from 'MATROSKA' to 'MKV'
+            context.scene.render.ffmpeg.gopsize = 1
+        else:
+            # MP4 and MKV with H.264
             context.scene.render.ffmpeg.codec = 'H264'
             if hasattr(context.scene.render.ffmpeg, 'constant_rate_factor'):
                 context.scene.render.ffmpeg.constant_rate_factor = 'HIGH'
@@ -157,7 +173,7 @@ class RenderCleanupManager:
             context.scene.render.ffmpeg.maxrate = 9000
             context.scene.render.ffmpeg.gopsize = 12
         
-        # Simplified audio settings
+        # Audio settings
         if settings.use_audio:
             context.scene.render.ffmpeg.audio_codec = 'MP3'
             context.scene.render.ffmpeg.audio_bitrate = 192

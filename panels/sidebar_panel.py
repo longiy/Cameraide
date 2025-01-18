@@ -66,11 +66,14 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             # File Output
             layout.separator()
             box = layout.box()
-            col = box.column(align=True)  # Use column with align=True for compact spacing
+            col = box.column(align=True)
             col.label(text="File Output")
             col.separator(factor=1)
-            col.prop(settings, "output_folder", text="")
-            col.prop(settings, "file_name", text="")
+
+            # Output path with folder structure
+            col.prop(settings, "output_path", text="")  # Main output path
+            col.prop(settings, "output_subfolder", text="")  # Subfolder
+            col.prop(settings, "output_filename", text="")   # Filename
             
           # Format-specific options, all inside the file output box
             box = layout.box()
@@ -89,7 +92,7 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             row.prop_enum(settings, "output_format", 'MKV', text="MKV")
             row.prop_enum(settings, "output_format", 'MOV', text="MOV")
             col.separator(factor=0.5)
-            
+
             # Format-specific options
             if settings.output_format == 'PNG':
                 
@@ -112,7 +115,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
 
 
             # Extra Settings
-            layout.separator()
             box = layout.box()
             col = box.column(align=True)  # Use column for compact spacing
             col.label(text="File Output Extra")

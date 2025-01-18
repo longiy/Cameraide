@@ -71,18 +71,25 @@ class CameraideSettings(PropertyGroup):
         default=False
     )
     
-    # File Output Settings
-    output_folder: StringProperty(
-        name="Output",
-        description="Custom output folder for this camera",
-        default="//tmp/",
+    # In properties.py
+    output_path: StringProperty(
+        name="Path",
+        description="Root output path",
+        default="//",
         subtype='DIR_PATH'
     )
-    file_name: StringProperty(
-        name="Name",
-        description="Custom output file name for this camera",
-        default="render"
+
+    output_subfolder: StringProperty(
+        name="Folder",
+        description="Subfolder name (will be created under the output path)",
+        default=""
     )
+
+    output_filename: StringProperty(  # Rename from file_name to output_filename for consistency
+        name="Name",
+        description="Output file name",
+        default="render"
+)
     # Replace the separate file_format and ffmpeg_format properties with a single format property
     output_format: EnumProperty(
         name="Format",

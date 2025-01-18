@@ -60,19 +60,25 @@ class CAMERAIDE_PT_main_panel(Panel):
                         icon='PREVIEW_RANGE',
                         depress=settings.sync_frame_range)
 
-            # File Output
-            split = layout.split(factor=0.6)    
-            col = split.column(heading="File Output")
-            col.prop(settings, "output_folder", text="")
-            col.prop(settings, "file_name", text="")
+             # File Output
+            layout.separator()
+            box = layout.box()
+            col = box.column(align=True)
+            col.label(text="File Output")
+            col.separator(factor=1)
 
-            # Format selection box
+            # Output path with folder structure
+            col.prop(settings, "output_path", text="")  # Main output path
+            col.prop(settings, "output_subfolder", text="")  # Subfolder
+            col.prop(settings, "output_filename", text="")   # Filename
+            
+            # Format-specific options, all inside the file output box
             box = layout.box()
             col = box.column(align=True)
             col.label(text="File Format")
-            col.separator(factor=0.1)
+            col.separator(factor=1)
 
-            # Format selection buttons
+            # Format selection buttons - now using a single property
             row = col.row(align=True)
             row.prop_enum(settings, "output_format", 'PNG', text="PNG")
             row.prop_enum(settings, "output_format", 'JPEG', text="JPEG")
@@ -82,40 +88,59 @@ class CAMERAIDE_PT_main_panel(Panel):
             row.prop_enum(settings, "output_format", 'MP4', text="MP4")
             row.prop_enum(settings, "output_format", 'MKV', text="MKV")
             row.prop_enum(settings, "output_format", 'MOV', text="MOV")
-            col.separator(factor=1)
+            col.separator(factor=0.5)
+
             # Format-specific options
             if settings.output_format == 'PNG':
+                
                 row = col.row(align=True)
                 row.prop(settings, "png_color_depth", text="")
                 row.prop(settings, "png_compression", slider=True)
-                col.prop(settings, "overwrite_existing")
+                row = col.row(align=True)
+                row.prop(settings, "overwrite_existing")
+                row.prop(settings, "film_transparent")
+                
             elif settings.output_format == 'JPEG':
-                col.prop(settings, "jpeg_quality", slider=True)
-                col.prop(settings, "overwrite_existing")
+                row = col.row(align=True)
+                row.prop(settings, "overwrite_existing")
+                row.prop(settings, "jpeg_quality", slider=True)
+                
             elif settings.output_format == 'OPEN_EXR':
                 row = col.row(align=True)
                 row.prop(settings, "exr_color_depth", text="")
                 row.prop(settings, "exr_codec", text="")
-                col.prop(settings, "overwrite_existing")
-                # col.prop(settings, "exr_preview")
-                
+                row = col.row(align=True)
+                row.prop(settings, "overwrite_existing")
+                row.prop(settings, "film_transparent")
+                row.prop(settings, "exr_preview")
 
-            layout.separator()
-
-            row = layout.row()
-            row.prop(settings, "use_audio", text="Audio (mp3)")        
-            row.prop(settings, "film_transparent")
-            row.prop(settings, "overwrite_existing")
-            row.prop(settings, "burn_metadata")
-            row.prop(settings, "ignore_markers")
-            row.prop(settings, "include_camera_name")
-
-            layout.separator()
-            layout.separator()
+            if settings.output_format in {'MP4', 'MKV', 'MOV'}:
+                row = col.row(align=True)
+                col.prop(settings, "use_audio", text="Audio (mp3)")
             
-            row = layout.row(align=True)
+
+
+           # Extra Settings
+            split = layout.split(factor=0.4)  # Split layout into two columns: 70% and 30%
+
+            # Left column - File Output Extra
+            col2 = split.column()
+            col2.scale_y = 2.2  # Make buttons taller
+            row = col2.row()
             row.operator("camera.render_selected_viewport", text="Render Viewport", icon="RENDER_ANIMATION")
+            row = col2.row()
             row.operator("camera.render_selected_normal", text="Render Normal", icon="RENDER_ANIMATION")
+            
+            # Right column - Render Buttons
+            col1 = split.column()
+            box = col1.box()
+            col = box.column(align=True)
+            col.label(text="File Ouput Extra")
+            col.prop(settings, "ignore_markers")
+            col.prop(settings, "include_camera_name")
+            col.prop(settings, "burn_metadata")
+
+            
 
 def register():
     try:
