@@ -48,12 +48,12 @@ class CameraideSettings(PropertyGroup):
     )
     
     frame_start: IntProperty(
-        name="Start Frame",
+        name="Start",
         default=1,
         update=update_frame_start
     )
     frame_end: IntProperty(
-        name="End Frame",
+        name="End",
         default=250,
         update=update_frame_end
     )
@@ -83,17 +83,21 @@ class CameraideSettings(PropertyGroup):
         description="Custom output file name for this camera",
         default="render"
     )
-    file_format: EnumProperty(
+    # Replace the separate file_format and ffmpeg_format properties with a single format property
+    output_format: EnumProperty(
         name="Format",
-        description="Custom output file format for this camera",
+        description="Output file format",
         items=[
-            ('PNG', "PNG", "Save as PNG"),
-            ('JPEG', "JPEG", "Save as JPEG"),
-            ('OPEN_EXR', "OpenEXR", "Save as OpenEXR"),
-            ('FFMPEG', "Movie", "Save as video file"),
+            ('PNG', "PNG", "PNG Format\n• Color Depth: 8/16-bit\n• Lossless compression\n• Alpha support"),
+            ('JPEG', "JPEG", "JPEG Format\n• 8-bit color depth\n• Quality: 90%\n• Lossy compression"),
+            ('OPEN_EXR', "EXR", "OpenEXR Format\n• Color Depth: 16/32-bit float\n• Multiple compression options\n• HDR support\n• Alpha support"),
+            ('MP4', "MP4", "MP4 Video\n• H.264 codec\n• High quality preset\n• Bitrate: 6000 kb/s\n• GOP size: 12"),
+            ('MKV', "MKV", "Matroska Video\n• H.264 codec\n• High quality preset\n• Bitrate: 6000 kb/s\n• GOP size: 12"),
+            ('MOV', "MOV", "QuickTime\n• Animation codec\n• Lossless quality\n• No compression\n• Large file size"),
         ],
         default='PNG'
     )
+
     
     # PNG Settings
     png_color_depth: EnumProperty(

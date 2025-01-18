@@ -4,7 +4,7 @@ from bpy.types import Panel
 
 class CAMERAIDE_PT_main_panel(Panel):
     bl_label = "Cameraide Settings"
-    bl_idname = "CAMERAIDE_PT_main_panel"  # Changed identifier
+    bl_idname = "CAMERAIDE_PT_main_panel"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "data"
@@ -17,7 +17,6 @@ class CAMERAIDE_PT_main_panel(Panel):
         layout = self.layout
         scene = bpy.context.scene
 
-        # Rest of the draw method remains the same
         if context.active_object and context.active_object.type == 'CAMERA':
             cam = context.active_object.data
             camera_name = context.active_object.name
@@ -67,37 +66,44 @@ class CAMERAIDE_PT_main_panel(Panel):
             col.prop(settings, "output_folder", text="")
             col.prop(settings, "file_name", text="")
 
-            col = split.column()
-            row = col.row()
-            row.prop(settings, "file_format", text="", icon="IMAGE_DATA")
+            # Format selection box
+            box = layout.box()
+            col = box.column(align=True)
+            col.label(text="File Format")
+            col.separator(factor=0.1)
 
+            # Format selection buttons
+            row = col.row(align=True)
+            row.prop_enum(settings, "output_format", 'PNG', text="PNG")
+            row.prop_enum(settings, "output_format", 'JPEG', text="JPEG")
+            row.prop_enum(settings, "output_format", 'OPEN_EXR', text="EXR")
+
+            row = col.row(align=True)
+            row.prop_enum(settings, "output_format", 'MP4', text="MP4")
+            row.prop_enum(settings, "output_format", 'MKV', text="MKV")
+            row.prop_enum(settings, "output_format", 'MOV', text="MOV")
+            col.separator(factor=1)
             # Format-specific options
-            if settings.file_format == 'PNG':
-                row = col.row()   
+            if settings.output_format == 'PNG':
+                row = col.row(align=True)
                 row.prop(settings, "png_color_depth", text="")
                 row.prop(settings, "png_compression", slider=True)
-            elif settings.file_format == 'JPEG':
+                col.prop(settings, "overwrite_existing")
+            elif settings.output_format == 'JPEG':
                 col.prop(settings, "jpeg_quality", slider=True)
-            elif settings.file_format == 'OPEN_EXR':
-                row = col.row() 
+                col.prop(settings, "overwrite_existing")
+            elif settings.output_format == 'OPEN_EXR':
+                row = col.row(align=True)
                 row.prop(settings, "exr_color_depth", text="")
-                row = col.row() 
                 row.prop(settings, "exr_codec", text="")
-                row.prop(settings, "exr_preview")
-            
-            elif settings.file_format == 'FFMPEG':
-                box = layout.box()
-                box.label(text="Video Settings")
-                row = box.row(align=True)
-                row.prop(settings, "ffmpeg_format")
+                col.prop(settings, "overwrite_existing")
+                # col.prop(settings, "exr_preview")
                 
-            # Simple audio toggle
-                box.prop(settings, "use_audio", text="Include MP3 Audio (192kb/s)")
-
 
             layout.separator()
 
-            row = layout.row()       
+            row = layout.row()
+            row.prop(settings, "use_audio", text="Audio (mp3)")        
             row.prop(settings, "film_transparent")
             row.prop(settings, "overwrite_existing")
             row.prop(settings, "burn_metadata")

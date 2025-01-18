@@ -4,7 +4,7 @@ from bpy.types import Panel
 
 class CAMERAIDE_PT_sidebar_panel(Panel):
     bl_label = "Cameraide Settings"
-    bl_idname = "CAMERAIDE_PT_sidebar_panel"  # Changed identifier
+    bl_idname = "CAMERAIDE_PT_sidebar_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "Camera"
@@ -15,7 +15,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         return True
 
     def draw(self, context):
-        # Rest of the draw method remains the same...
         layout = self.layout
 
         if context.active_object and context.active_object.type == 'CAMERA':
@@ -41,71 +40,94 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         if settings.use_custom_settings:
             # Resolution
             box = layout.box()
-            box.label(text="Resolution", icon="KEYTYPE_EXTREME_VEC")
-            row = layout.row(align=True)
+            col = box.column(align=True)  # Use column for compact spacing
+            col.label(text="Resolution")
+            col.separator(factor=1)
+            row = col.row(align=True)
             row.prop(settings, "resolution_x")
             row.prop(settings, "resolution_y")
-            layout.prop(settings, "resolution_percentage", slider=True)
-            layout.operator("camera.swap_resolution", text="Swap Resolution", icon='ARROW_LEFTRIGHT')
+            col.prop(settings, "resolution_percentage", slider=True)
+            col.operator("camera.swap_resolution", text="Swap Resolution", icon='ARROW_LEFTRIGHT')
 
             # Frame Range
             box = layout.box()
-            box.label(text="Frame Range", icon="KEYTYPE_EXTREME_VEC")
-            row = layout.row(align=True)
+            col = box.column(align=True)  # Use column for compact spacing
+            col.label(text="Frame Range")
+            col.separator(factor=1)
+            row = col.row(align=True)
             row.prop(settings, "frame_start")
             row.prop(settings, "frame_end")
-            layout.prop(settings, "frame_step")
-            layout.operator("camera.toggle_frame_range_sync", 
-                         text="Sync " + ("ON" if settings.sync_frame_range else "OFF"), 
-                         icon='PREVIEW_RANGE',
-                         depress=settings.sync_frame_range)
+            col.prop(settings, "frame_step")
+            col.operator("camera.toggle_frame_range_sync", 
+                    text="Sync " + ("ON" if settings.sync_frame_range else "OFF"), 
+                    icon='PREVIEW_RANGE',
+                    depress=settings.sync_frame_range)
 
             # File Output
             layout.separator()
             box = layout.box()
-            box.label(text="File Output", icon="KEYTYPE_EXTREME_VEC")
-            layout.prop(settings, "output_folder", text="")
-            layout.prop(settings, "file_name", text="")
-            row = layout.row(align=True)
-            row.prop(settings, "file_format", text="")
+            col = box.column(align=True)  # Use column with align=True for compact spacing
+            col.label(text="File Output")
+            col.separator(factor=1)
+            col.prop(settings, "output_folder", text="")
+            col.prop(settings, "file_name", text="")
+            
+          # Format-specific options, all inside the file output box
+            box = layout.box()
+            col = box.column(align=True)
+            col.label(text="File Format")
+            col.separator(factor=1)
 
+            # Format selection buttons - now using a single property
+            row = col.row(align=True)
+            row.prop_enum(settings, "output_format", 'PNG', text="PNG")
+            row.prop_enum(settings, "output_format", 'JPEG', text="JPEG")
+            row.prop_enum(settings, "output_format", 'OPEN_EXR', text="EXR")
+
+            row = col.row(align=True)
+            row.prop_enum(settings, "output_format", 'MP4', text="MP4")
+            row.prop_enum(settings, "output_format", 'MKV', text="MKV")
+            row.prop_enum(settings, "output_format", 'MOV', text="MOV")
+            col.separator(factor=0.5)
+            
             # Format-specific options
-            if settings.file_format == 'PNG':
-                row = layout.row(align=True)
+            if settings.output_format == 'PNG':
+                
+                row = col.row(align=True)
                 row.prop(settings, "png_color_depth", text="")
                 row.prop(settings, "png_compression", slider=True)
-                layout.prop(settings, "overwrite_existing")
-            elif settings.file_format == 'JPEG':
-                row = layout.row(align=True)
-                row.prop(settings, "jpeg_quality", slider=True)
-                layout.prop(settings, "overwrite_existing")
-            elif settings.file_format == 'OPEN_EXR':
-                row = layout.row(align=True)
+                
+            elif settings.output_format == 'JPEG':
+                col.prop(settings, "jpeg_quality", slider=True)
+                
+            elif settings.output_format == 'OPEN_EXR':
+                row = col.row(align=True)
                 row.prop(settings, "exr_color_depth", text="")
                 row.prop(settings, "exr_codec", text="")
-                row = layout.row(align=True)
-                row.prop(settings, "overwrite_existing")
-                row.prop(settings, "exr_preview")
-                
-            # Replace the FFMPEG settings section in both panel files:
+                # col.prop(settings, "exr_preview")
+            if settings.output_format in {'MP4', 'MKV', 'MOV'}:
+                row = col.row(align=True)
+                col.prop(settings, "use_audio", text="Audio (mp3)")
+            
 
-            elif settings.file_format == 'FFMPEG':
-                box = layout.box()
-                box.label(text="Video Settings")
-                row = box.row(align=True)
-                row.prop(settings, "ffmpeg_format")
-                
-            # Simple audio toggle
-                box.prop(settings, "use_audio", text="Include MP3 Audio (192kb/s)")
-                
 
             # Extra Settings
+            layout.separator()
             box = layout.box()
-            box.label(text="File Output Extra", icon="KEYTYPE_EXTREME_VEC")
-            layout.prop(settings, "film_transparent")
-            layout.prop(settings, "ignore_markers")
-            layout.prop(settings, "include_camera_name")
-            layout.prop(settings, "burn_metadata")
+            col = box.column(align=True)  # Use column for compact spacing
+            col.label(text="File Output Extra")
+            col.separator(factor=1)
+
+            # Audio option only for video formats
+            if settings.output_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
+                col.prop(settings, "overwrite_existing")
+
+            # Common options for all formats
+            if settings.output_format in {'PNG', 'OPEN_EXR'}:
+                col.prop(settings, "film_transparent")
+            col.prop(settings, "ignore_markers")
+            col.prop(settings, "include_camera_name")
+            col.prop(settings, "burn_metadata")
 
             # Render Buttons
             row = layout.row()
