@@ -82,13 +82,13 @@ class CameraideSettings(PropertyGroup):
     output_subfolder: StringProperty(
         name="Folder",
         description="Subfolder name (will be created under the output path)",
-        default=""
+        default="Folder"
     )
 
     output_filename: StringProperty(  # Rename from file_name to output_filename for consistency
         name="Name",
         description="Output file name",
-        default="render"
+        default="Name"
 )
     # Replace the separate file_format and ffmpeg_format properties with a single format property
     output_format: EnumProperty(

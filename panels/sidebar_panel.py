@@ -3,7 +3,7 @@ import bpy
 from bpy.types import Panel
 
 class CAMERAIDE_PT_sidebar_panel(Panel):
-    bl_label = "Cameraide Settings"
+    bl_label = "Cameraide 1.0.0"
     bl_idname = "CAMERAIDE_PT_sidebar_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -33,9 +33,9 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         row = layout.row()
         row.scale_y = 2.0
         if settings.use_custom_settings:
-            row.operator("camera.toggle_custom_settings", text=f"FRIEND: {camera_name}", icon='FUND', depress=True)
+            row.operator("camera.toggle_custom_settings", text=f"{camera_name}", icon='FUND', depress=True)
         else:
-            row.operator("camera.toggle_custom_settings", text=f"BEFRIEND: {camera_name}", icon='DECORATE')
+            row.operator("camera.toggle_custom_settings", text=f"{camera_name}", icon='DECORATE')
 
         if settings.use_custom_settings:
             # Resolution

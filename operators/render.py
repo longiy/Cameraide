@@ -98,6 +98,8 @@ class RenderCleanupManager:
     @classmethod
     def apply_camera_settings(cls, context, cam_obj):
         """Apply camera settings to render"""
+        from ..utils.callbacks import get_clean_camera_name  # Add this import
+        
         settings = cam_obj.data.cameraide_settings
         cls._current_camera = cam_obj
         
@@ -114,7 +116,13 @@ class RenderCleanupManager:
         # Construct full output path
         base_path = bpy.path.abspath(settings.output_path)
         subfolder = settings.output_subfolder
-        filename = settings.output_filename if not settings.include_camera_name else f"{cam_obj.name}_{settings.output_filename}"
+        # Use clean camera name when including camera name in filename
+        if settings.include_camera_name:
+            clean_name = get_clean_camera_name(cam_obj)
+            filename = f"{clean_name}_{settings.output_filename}"
+        else:
+            filename = settings.output_filename
+            
         filepath = os.path.join(base_path, subfolder, filename)
         context.scene.render.filepath = filepath
         

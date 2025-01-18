@@ -3,7 +3,7 @@ import bpy
 from bpy.types import Panel
 
 class CAMERAIDE_PT_main_panel(Panel):
-    bl_label = "Cameraide Settings"
+    bl_label = "Cameraide 1.0.0"
     bl_idname = "CAMERAIDE_PT_main_panel"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -71,7 +71,7 @@ class CAMERAIDE_PT_main_panel(Panel):
             col.prop(settings, "output_path", text="")  # Main output path
             col.prop(settings, "output_subfolder", text="")  # Subfolder
             col.prop(settings, "output_filename", text="")   # Filename
-            
+
             # Format-specific options, all inside the file output box
             box = layout.box()
             col = box.column(align=True)
