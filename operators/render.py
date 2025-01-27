@@ -290,12 +290,16 @@ class CAMERA_OT_render_selected_normal(Operator):
 class CameraRenderOperatorBase:
     def cleanup_handlers(self):
         """Remove all render handlers"""
-        if self.render_post in bpy.app.handlers.render_post:
-            bpy.app.handlers.render_post.remove(self.render_post)
-        if self.frame_change_post in bpy.app.handlers.frame_change_post:
-            bpy.app.handlers.frame_change_post.remove(self.frame_change_post)
-        if self.render_cancel in bpy.app.handlers.render_cancel:
-            bpy.app.handlers.render_cancel.remove(self.render_cancel)
+        try:
+            if self.render_post in bpy.app.handlers.render_post:
+                bpy.app.handlers.render_post.remove(self.render_post)
+            if self.frame_change_post in bpy.app.handlers.frame_change_post:
+                bpy.app.handlers.frame_change_post.remove(self.frame_change_post)
+            if self.render_cancel in bpy.app.handlers.render_cancel:
+                bpy.app.handlers.render_cancel.remove(self.render_cancel)
+            print("Successfully cleaned up render handlers")
+        except Exception as e:
+            print(f"Error during handler cleanup: {str(e)}")
 
 class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
     bl_idname = "camera.render_all_viewport"
@@ -350,6 +354,8 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
             
             if not self.is_rendering:
                 if self.current_index < len(self.cameras) - 1:
+                      # Clean up any existing handlers before starting new render
+                    self.cleanup_handlers()
                     camera = self.prepare_next_camera(context)
                     print(f"Starting render for camera: {camera.name}")
                     self.is_rendering = True
@@ -420,6 +426,13 @@ class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
         """Handler for render post"""
         print("Render post callback triggered")
         self._last_frame = scene.frame_current
+        
+        # Check if we've reached the end frame
+        settings = scene.camera.data.cameraide_settings
+        if scene.frame_current >= settings.frame_end:
+            print(f"Render completed at frame {scene.frame_current}")
+            self.is_rendering = False
+            self.cleanup_handlers()
     
     def render_cancel(self, scene, depsgraph):
         """Handler for render cancellation"""
