@@ -356,7 +356,7 @@ class CAMERA_OT_render_all_normal(Operator):
             # Check if render is complete
             elif self.is_rendering:
                 # Update timeout counter
-                self.render_timeout += 0.1
+                self.render_timeout += 1
                 
                 # Check if render is taking too long (5 minutes timeout)
                 if self.render_timeout > 300.0:
@@ -513,7 +513,7 @@ class CAMERA_OT_render_all_viewport(Operator):
             # Check if render is complete
             elif self.is_rendering:
                 # Update timeout counter
-                self.render_timeout += 0.1
+                self.render_timeout += 1
                 
                 # Check if render is taking too long (5 minutes timeout)
                 if self.render_timeout > 300.0:
