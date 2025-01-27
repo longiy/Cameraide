@@ -4,8 +4,11 @@ from .file_output import register as register_file_output, unregister as unregis
 from .render import (register as register_render, 
                     unregister as unregister_render,
                     CAMERA_OT_render_all_viewport,
+                    CAMERA_OT_render_all_normal,
+                    CAMERA_OT_render_all_normal,
                     CAMERA_OT_render_selected_viewport,
-                    CAMERA_OT_render_selected_normal)
+                    CAMERA_OT_render_selected_normal,
+                    CameraRenderOperatorBase,)
 from .resolution import register as register_resolution, unregister as unregister_resolution
 
 def register():
