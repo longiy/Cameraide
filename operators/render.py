@@ -289,11 +289,13 @@ class CAMERA_OT_render_selected_normal(Operator):
         
 class CameraRenderOperatorBase:
     def cleanup_handlers(self):
-        """Remove render handlers"""
+        """Remove all render handlers"""
         if self.render_post in bpy.app.handlers.render_post:
             bpy.app.handlers.render_post.remove(self.render_post)
         if self.frame_change_post in bpy.app.handlers.frame_change_post:
             bpy.app.handlers.frame_change_post.remove(self.frame_change_post)
+        if self.render_cancel in bpy.app.handlers.render_cancel:
+            bpy.app.handlers.render_cancel.remove(self.render_cancel)
 
 class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
     bl_idname = "camera.render_all_viewport"
@@ -307,8 +309,13 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
     def render_post(self, scene, depsgraph):
         """Handler for render post"""
         print("Render post callback triggered")
-        # Store last rendered frame for completion check
         self._last_frame = scene.frame_current
+    
+    def render_cancel(self, scene, depsgraph):
+        """Handler for render cancellation"""
+        print("Render cancel callback triggered")
+        self.is_rendering = False
+        self.cleanup_handlers()
     
     def frame_change_post(self, scene, depsgraph):
         """Handler for frame change"""
@@ -351,6 +358,7 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
                     # Add handlers
                     bpy.app.handlers.render_post.append(self.render_post)
                     bpy.app.handlers.frame_change_post.append(self.frame_change_post)
+                    bpy.app.handlers.render_cancel.append(self.render_cancel)
                     
                     bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
                                         sequencer=False, write_still=False, view_context=True)
@@ -398,7 +406,6 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
         RenderCleanupManager.restore_settings(context)
         return {'CANCELLED'}
 
-# Similar changes for CAMERA_OT_render_all_normal class...
 class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
     bl_idname = "camera.render_all_normal"
     bl_label = "Render All Cameras (Normal)"
@@ -411,8 +418,13 @@ class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
     def render_post(self, scene, depsgraph):
         """Handler for render post"""
         print("Render post callback triggered")
-        # Store last rendered frame for completion check
         self._last_frame = scene.frame_current
+    
+    def render_cancel(self, scene, depsgraph):
+        """Handler for render cancellation"""
+        print("Render cancel callback triggered")
+        self.is_rendering = False
+        self.cleanup_handlers()
     
     def frame_change_post(self, scene, depsgraph):
         """Handler for frame change"""
@@ -455,6 +467,7 @@ class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
                     # Add handlers
                     bpy.app.handlers.render_post.append(self.render_post)
                     bpy.app.handlers.frame_change_post.append(self.frame_change_post)
+                    bpy.app.handlers.render_cancel.append(self.render_cancel)
                     
                     bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
                 else:
