@@ -137,6 +137,37 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             row.operator("camera.render_selected_viewport", text="Render Viewport", icon="RENDER_ANIMATION")
             row = layout.row()
             row.operator("camera.render_selected_normal", text="Render Normal", icon="RENDER_ANIMATION")
+            
+            
+            
+# Extra Settings
+            split = layout.split(factor=0.4)
+
+            # Left column - Render Buttons
+            col2 = split.column()
+            col2.scale_y = 2.2
+            row = col2.row()
+            row.operator("camera.render_selected_viewport", text="Render Viewport", icon="RENDER_ANIMATION")
+            row = col2.row()
+            row.operator("camera.render_selected_normal", text="Render Normal", icon="RENDER_ANIMATION")
+            
+            # Add separator
+            col2.separator()
+            
+            # Add prominent batch render button
+            row = col2.row()
+            row.scale_y = 1.5  # Make it a bit bigger
+            row.alert = True  # Make it red to stand out
+            row.operator("camera.render_all_viewport", text="Render All Cameras", icon="CAMERA_DATA")
+            
+            # Right column - File Output Extra
+            col1 = split.column()
+            box = col1.box()
+            col = box.column(align=True)
+            col.label(text="File Ouput Extra")
+            col.prop(settings, "ignore_markers")
+            col.prop(settings, "include_camera_name")
+            col.prop(settings, "burn_metadata")
 
 def register():
     try:

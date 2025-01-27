@@ -289,12 +289,95 @@ class CAMERA_OT_render_selected_normal(Operator):
             RenderCleanupManager.restore_settings(context)
             remove_handlers()
             return {'CANCELLED'}
+        
+class CAMERA_OT_render_all_viewport(Operator):
+    bl_idname = "camera.render_all_viewport"
+    bl_label = "Render All Cameras"
+    bl_description = "Render all cameras with Cameraide settings enabled"
+    
+    def modal(self, context, event):
+        self.counter += 1
+        # Wait for a few frames to ensure render is complete
+        if self.counter > 10:
+            try:
+                # Move to next camera
+                if self.current_index < len(self.cameras) - 1:
+                    self.current_index += 1
+                    self.counter = 0  # Reset counter
+                    
+                    camera = self.cameras[self.current_index]
+                    print(f"\nProcessing camera {self.current_index + 1}/{len(self.cameras)}: {camera.name}")
+                    
+                    # Setup camera
+                    context.scene.camera = camera
+                    
+                    # Force camera view in all 3D viewports
+                    for area in context.screen.areas:
+                        if area.type == 'VIEW_3D':
+                            area.spaces[0].region_3d.view_perspective = 'CAMERA'
+                    
+                    # Store and apply settings
+                    RenderCleanupManager.store_settings(context)
+                    RenderCleanupManager.apply_camera_settings(context, camera)
+                    
+                    # Ensure we're in camera view
+                    context.scene.camera = camera
+                    
+                    # Force a render
+                    bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
+                                        sequencer=False, write_still=False, view_context=True)
+                    return {'RUNNING_MODAL'}
+                else:
+                    # All cameras done
+                    print("\nFinished rendering all cameras")
+                    RenderCleanupManager.restore_settings(context)
+                    return {'FINISHED'}
+                    
+            except Exception as e:
+                print(f"Error during render: {str(e)}")
+                RenderCleanupManager.restore_settings(context)
+                return {'CANCELLED'}
+                
+        return {'RUNNING_MODAL'}
+    
+    def execute(self, context):
+        try:
+            # Get all cameras with Cameraide enabled
+            self.cameras = [obj for obj in context.scene.objects 
+                          if obj.type == 'CAMERA' 
+                          and obj.data.cameraide_settings.use_custom_settings]
+            
+            if not self.cameras:
+                self.report({'WARNING'}, "No cameras with Cameraide settings enabled")
+                return {'CANCELLED'}
+            
+            print(f"\nFound {len(self.cameras)} cameras to render")
+            
+            # Initialize variables
+            self.current_index = -1
+            self.counter = 0
+            
+            # Add modal handler
+            context.window_manager.modal_handler_add(self)
+            
+            return {'RUNNING_MODAL'}
+            
+        except Exception as e:
+            self.report({'ERROR'}, f"Failed to start batch render: {str(e)}")
+            print(f"Error: {str(e)}")
+            return {'CANCELLED'}
+    
+    def cancel(self, context):
+        RenderCleanupManager.restore_settings(context)
+        return {'CANCELLED'}
 
 def register():
     bpy.utils.register_class(CAMERA_OT_render_selected_viewport)
     bpy.utils.register_class(CAMERA_OT_render_selected_normal)
+    bpy.utils.register_class(CAMERA_OT_render_all_viewport)
 
 def unregister():
     remove_handlers()  # Clean up any lingering handlers
     bpy.utils.unregister_class(CAMERA_OT_render_selected_normal)
     bpy.utils.unregister_class(CAMERA_OT_render_selected_viewport)
+    bpy.utils.unregister_class(CAMERA_OT_render_all_viewport)
