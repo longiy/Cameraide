@@ -341,7 +341,7 @@ class CAMERA_OT_render_all_normal(Operator):
             self.is_rendering = False
             
             # Wait a bit to ensure render is truly complete
-            time.sleep(0.5)
+            time.sleep(0.1)
             
             # If we have more cameras to process
             if self.current_index < len(self.cameras) - 1:

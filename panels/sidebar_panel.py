@@ -130,29 +130,16 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             col.prop(settings, "ignore_markers")
             col.prop(settings, "include_camera_name")
             col.prop(settings, "burn_metadata")
-
-            split = layout.split(factor=0.4)
-
-            # Left column - Render Buttons
-            col2 = split.column()
-            col2.scale_y = 2.2
-            row = col2.row()
-            row.operator("camera.render_selected_viewport", text="Render Viewport", icon="RENDER_ANIMATION")
-            row = col2.row()
+            
+            row = layout.row()
+            row.scale_y = 1.5
+            row.operator("camera.render_selected_viewport", text="Render Viewport", icon="CAMERA_DATA")
+            row.alert = True
+            row.operator("camera.render_all_viewport", text="All", icon="CAMERA_DATA")
+            row = layout.row()
             row.operator("camera.render_selected_normal", text="Render Normal", icon="RENDER_ANIMATION")
-
-            # Add separator
-            col2.separator()
-
-            # Add batch render buttons
-            row = col2.row()
-            row.scale_y = 1.5
             row.alert = True
-            row.operator("camera.render_all_viewport", text="Render All VP", icon="CAMERA_DATA")
-            row = col2.row()
-            row.scale_y = 1.5
-            row.alert = True
-            row.operator("camera.render_all_normal", text="Render All", icon="RENDER_ANIMATION")
+            row.operator("camera.render_all_normal", text="All", icon="RENDER_ANIMATION")
 
 def register():
     try:
