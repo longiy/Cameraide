@@ -381,7 +381,7 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
             
             # Add timer for modal
             wm = context.window_manager
-            self._timer = wm.event_timer_add(1, window=context.window)
+            self._timer = wm.event_timer_add(3, window=context.window)
             wm.modal_handler_add(self)
             
             return {'RUNNING_MODAL'}
@@ -484,7 +484,7 @@ class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
             
             # Add timer for modal
             wm = context.window_manager
-            self._timer = wm.event_timer_add(1, window=context.window)
+            self._timer = wm.event_timer_add(3, window=context.window)
             wm.modal_handler_add(self)
             
             return {'RUNNING_MODAL'}
