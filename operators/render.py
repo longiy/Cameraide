@@ -364,6 +364,7 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
                                         sequencer=False, write_still=False, view_context=True)
                 else:
                     print("All cameras completed")
+                    self.is_rendering = False  # Add this line
                     self.cleanup_handlers()
                     context.window_manager.event_timer_remove(self._timer)
                     RenderCleanupManager.restore_settings(context)
@@ -472,6 +473,7 @@ class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
                     bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
                 else:
                     print("All cameras completed")
+                    self.is_rendering = False  # Add this line
                     self.cleanup_handlers()
                     context.window_manager.event_timer_remove(self._timer)
                     RenderCleanupManager.restore_settings(context)
