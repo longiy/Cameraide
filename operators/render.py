@@ -352,10 +352,17 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
         if event.type == 'TIMER':
             print(f"Timer event - is_rendering: {self.is_rendering}, current_index: {self.current_index}")
             
+            # Add this check to force is_rendering to False when all cameras are done
+            if self.current_index >= len(self.cameras) - 1:
+                print("All cameras completed, forcing is_rendering to False")
+                self.is_rendering = False
+                self.cleanup_handlers()
+                context.window_manager.event_timer_remove(self._timer)
+                RenderCleanupManager.restore_settings(context)
+                return {'FINISHED'}
+                
             if not self.is_rendering:
                 if self.current_index < len(self.cameras) - 1:
-                      # Clean up any existing handlers before starting new render
-                    self.cleanup_handlers()
                     camera = self.prepare_next_camera(context)
                     print(f"Starting render for camera: {camera.name}")
                     self.is_rendering = True
@@ -368,13 +375,6 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
                     
                     bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
                                         sequencer=False, write_still=False, view_context=True)
-                else:
-                    print("All cameras completed")
-                    self.is_rendering = False  # Add this line
-                    self.cleanup_handlers()
-                    context.window_manager.event_timer_remove(self._timer)
-                    RenderCleanupManager.restore_settings(context)
-                    return {'FINISHED'}
         
         return {'PASS_THROUGH'}
     
