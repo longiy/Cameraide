@@ -3,7 +3,7 @@ import bpy
 from bpy.types import Panel
 
 class CAMERAIDE_PT_sidebar_panel(Panel):
-    bl_label = "Cameraide 1.0.0"
+    bl_label = "Cameraide 1.0.1"
     bl_idname = "CAMERAIDE_PT_sidebar_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -64,7 +64,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                     depress=settings.sync_frame_range)
 
             # File Output
-            layout.separator()
             box = layout.box()
             col = box.column(align=True)
             col.label(text="File Output")
@@ -131,19 +130,22 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             
             # In both panel files:
 
-            row = layout.row(align=True)  # This align=True is what makes resolution gapless
-            row.scale_y = 1.5
-            row.operator("camera.render_selected_viewport", text="Viewport", icon="RENDER_ANIMATION")
-            row.alert = True
-            row.operator("camera.render_all_viewport", text="All")
 
 
             row = layout.row(align=True)  # This align=True is what makes resolution gapless
-            row.scale_y = 1.5
-            row.operator("camera.render_selected_normal", text="Normal", icon="RENDER_ANIMATION")
-            row.alert = True
-            row.operator("camera.render_all_normal", text="All")
+            split = row.split(factor=0.85, align=True)
+            split.scale_y = 1.5
+            split.operator("camera.render_selected_viewport", text="Render Viewport", icon="RESTRICT_VIEW_OFF")
+            split.alert = True
+            split.operator("camera.render_all_viewport", text="All")
             
+            row = layout.row(align=True)  # This align=True is what makes resolution gapless
+            split = row.split(factor=0.85, align=True)
+            split.scale_y = 1.5
+            split.operator("camera.render_selected_normal", text="Render Normal", icon="RESTRICT_RENDER_OFF")
+            split.alert = True
+            split.operator("camera.render_all_normal", text="All")
+                        
     
 def register():
     try:
