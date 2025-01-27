@@ -350,17 +350,31 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
     
     def modal(self, context, event):
         if event.type == 'TIMER':
-            print(f"Timer event - is_rendering: {self.is_rendering}, current_index: {self.current_index}")
+            print(f"Timer event - is_rendering: {self.is_rendering}, current_index: {self.current_index}, total cameras: {len(self.cameras)}")
             
-            # Add this check to force is_rendering to False when all cameras are done
+            # Force completion check if we're on the last camera
             if self.current_index >= len(self.cameras) - 1:
-                print("All cameras completed, forcing is_rendering to False")
-                self.is_rendering = False
-                self.cleanup_handlers()
-                context.window_manager.event_timer_remove(self._timer)
-                RenderCleanupManager.restore_settings(context)
-                return {'FINISHED'}
-                
+                print(f"On last camera {self.current_index + 1}/{len(self.cameras)}")
+                if self.is_rendering:  # If still rendering last camera
+                    settings = context.scene.camera.data.cameraide_settings
+                    current_frame = context.scene.frame_current
+                    
+                    # Check if we've reached or passed the end frame
+                    if current_frame >= settings.frame_end:
+                        print("Last camera completed, forcing shutdown")
+                        self.is_rendering = False
+                        self.cleanup_handlers()
+                        context.window_manager.event_timer_remove(self._timer)
+                        RenderCleanupManager.restore_settings(context)
+                        return {'FINISHED'}
+                else:
+                    # If not rendering and on last camera, we're done
+                    print("Last camera render completed, shutting down")
+                    self.cleanup_handlers()
+                    context.window_manager.event_timer_remove(self._timer)
+                    RenderCleanupManager.restore_settings(context)
+                    return {'FINISHED'}
+            
             if not self.is_rendering:
                 if self.current_index < len(self.cameras) - 1:
                     camera = self.prepare_next_camera(context)
