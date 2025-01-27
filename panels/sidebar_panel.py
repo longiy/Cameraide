@@ -112,8 +112,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                 row = col.row(align=True)
                 col.prop(settings, "use_audio", text="Audio (mp3)")
             
-
-
             # Extra Settings
             box = layout.box()
             col = box.column(align=True)  # Use column for compact spacing
@@ -131,16 +129,22 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             col.prop(settings, "include_camera_name")
             col.prop(settings, "burn_metadata")
             
-            row = layout.row()
-            row.scale_y = 1.5
-            row.operator("camera.render_selected_viewport", text="Render Viewport", icon="CAMERA_DATA")
-            row.alert = True
-            row.operator("camera.render_all_viewport", text="All", icon="CAMERA_DATA")
-            row = layout.row()
-            row.operator("camera.render_selected_normal", text="Render Normal", icon="RENDER_ANIMATION")
-            row.alert = True
-            row.operator("camera.render_all_normal", text="All", icon="RENDER_ANIMATION")
+            # In both panel files:
 
+            row = layout.row(align=True)  # This align=True is what makes resolution gapless
+            row.scale_y = 1.5
+            row.operator("camera.render_selected_viewport", text="Viewport", icon="RENDER_ANIMATION")
+            row.alert = True
+            row.operator("camera.render_all_viewport", text="All")
+
+
+            row = layout.row(align=True)  # This align=True is what makes resolution gapless
+            row.scale_y = 1.5
+            row.operator("camera.render_selected_normal", text="Normal", icon="RENDER_ANIMATION")
+            row.alert = True
+            row.operator("camera.render_all_normal", text="All")
+            
+    
 def register():
     try:
         bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)

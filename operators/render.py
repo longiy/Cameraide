@@ -256,7 +256,7 @@ class CAMERA_OT_render_selected_viewport(Operator):
 class CAMERA_OT_render_selected_normal(Operator):
     bl_idname = "camera.render_selected_normal"
     bl_label = "Render Normal"
-    bl_description = "Render animation using current render engine"
+    bl_description = "Render all Cameras with Normal render"
     
     @classmethod
     def poll(cls, context):
@@ -290,7 +290,7 @@ class CAMERA_OT_render_selected_normal(Operator):
 class CAMERA_OT_render_all_normal(Operator):
     bl_idname = "camera.render_all_normal"
     bl_label = "Render All Cameras (Normal)"
-    bl_description = "Render all cameras with Cameraide settings using current render engine"
+    bl_description = "Render all Cameras with Normally"
     
     is_rendering: bpy.props.BoolProperty(default=False)
     render_started: bpy.props.BoolProperty(default=False)
@@ -393,7 +393,7 @@ class CAMERA_OT_render_all_normal(Operator):
 class CAMERA_OT_render_all_viewport(Operator):
     bl_idname = "camera.render_all_viewport"
     bl_label = "Render All Cameras"
-    bl_description = "Render all cameras with Cameraide settings enabled"
+    bl_description = "Render all Cameras with Viewport render"
     
     is_rendering: bpy.props.BoolProperty(default=False)
     render_started: bpy.props.BoolProperty(default=False)
