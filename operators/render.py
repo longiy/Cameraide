@@ -348,49 +348,49 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
         
         return camera
     
+    def render_complete(self, scene, depsgraph):
+        """Handler for render completion"""
+        print("Render complete callback triggered")
+        self.is_rendering = False
+        
+        # If this was the last camera, clean up everything
+        if self.current_index >= len(self.cameras) - 1:
+            print("Final camera complete, ending modal")
+            self.cleanup_handlers()
+            if self._timer:
+                bpy.context.window_manager.event_timer_remove(self._timer)
+                self._timer = None
+            RenderCleanupManager.restore_settings(bpy.context)
+            return
+
     def modal(self, context, event):
         if event.type == 'TIMER':
-            print(f"Timer event - is_rendering: {self.is_rendering}, current_index: {self.current_index}, total cameras: {len(self.cameras)}")
-            
-            # Force completion check if we're on the last camera
-            if self.current_index >= len(self.cameras) - 1:
-                print(f"On last camera {self.current_index + 1}/{len(self.cameras)}")
-                if self.is_rendering:  # If still rendering last camera
-                    settings = context.scene.camera.data.cameraide_settings
-                    current_frame = context.scene.frame_current
-                    
-                    # Check if we've reached or passed the end frame
-                    if current_frame >= settings.frame_end:
-                        print("Last camera completed, forcing shutdown")
-                        self.is_rendering = False
-                        self.cleanup_handlers()
-                        context.window_manager.event_timer_remove(self._timer)
-                        RenderCleanupManager.restore_settings(context)
-                        return {'FINISHED'}
-                else:
-                    # If not rendering and on last camera, we're done
-                    print("Last camera render completed, shutting down")
-                    self.cleanup_handlers()
-                    context.window_manager.event_timer_remove(self._timer)
-                    RenderCleanupManager.restore_settings(context)
-                    return {'FINISHED'}
-            
+            if self._timer is None:  # Timer was removed, we're done
+                return {'FINISHED'}
+                
             if not self.is_rendering:
                 if self.current_index < len(self.cameras) - 1:
                     camera = self.prepare_next_camera(context)
                     print(f"Starting render for camera: {camera.name}")
                     self.is_rendering = True
-                    self._last_frame = None
                     
-                    # Add handlers
-                    bpy.app.handlers.render_post.append(self.render_post)
-                    bpy.app.handlers.frame_change_post.append(self.frame_change_post)
+                    # Add handlers including render_complete
+                    bpy.app.handlers.render_complete.append(self.render_complete)
                     bpy.app.handlers.render_cancel.append(self.render_cancel)
                     
                     bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
                                         sequencer=False, write_still=False, view_context=True)
+                else:
+                    return {'FINISHED'}
         
         return {'PASS_THROUGH'}
+
+    def cleanup_handlers(self):
+        """Remove all render handlers"""
+        if self.render_complete in bpy.app.handlers.render_complete:
+            bpy.app.handlers.render_complete.remove(self.render_complete)
+        if self.render_cancel in bpy.app.handlers.render_cancel:
+            bpy.app.handlers.render_cancel.remove(self.render_cancel)
     
     def execute(self, context):
         try:
@@ -481,7 +481,7 @@ class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
         
         return camera
     
-     def render_complete(self, scene, depsgraph):
+    def render_complete(self, scene, depsgraph):
         """Handler for render completion"""
         print("Render complete callback triggered")
         self.is_rendering = False
@@ -511,7 +511,7 @@ class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
                     bpy.app.handlers.render_complete.append(self.render_complete)
                     bpy.app.handlers.render_cancel.append(self.render_cancel)
                     
-                    bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
+                    bpy.ops.render.render('INVOKE_DEFAULT', animation=True, 
                                         sequencer=False, write_still=False, view_context=True)
                 else:
                     return {'FINISHED'}
