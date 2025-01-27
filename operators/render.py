@@ -511,8 +511,7 @@ class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
                     bpy.app.handlers.render_complete.append(self.render_complete)
                     bpy.app.handlers.render_cancel.append(self.render_cancel)
                     
-                    bpy.ops.render.render('INVOKE_DEFAULT', animation=True, 
-                                        sequencer=False, write_still=False, view_context=True)
+                    bpy.ops.render.render('INVOKE_DEFAULT', animation=True)  # Simplified parameters
                 else:
                     return {'FINISHED'}
         
