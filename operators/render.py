@@ -262,6 +262,8 @@ class CAMERA_OT_render_selected_normal(Operator):
     def poll(cls, context):
         return context.active_object and context.active_object.type == 'CAMERA'
     
+    
+    
     def execute(self, context):
         cam_obj = context.active_object
         settings = cam_obj.data.cameraide_settings
@@ -308,35 +310,87 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
     
     is_rendering: bpy.props.BoolProperty(default=False)
     _timer = None
+    _render_start_time = None
+    _last_frame_time = None
+    _frame_stuck_count = 0
     _last_frame = None
     
-    def render_post(self, scene, depsgraph):
-        """Handler for render post"""
-        print("Render post callback triggered")
-        self._last_frame = scene.frame_current
+    def __init__(self):
+        self._render_cancel = self.handle_render_cancel
+        self._frame_change_post = self.handle_frame_change_post
     
-    def render_cancel(self, scene, depsgraph):
+    def handle_render_cancel(self, scene, depsgraph):
         """Handler for render cancellation"""
-        print("Render cancel callback triggered")
+        print("=== Render cancel handler triggered ===")
         self.is_rendering = False
-        self.cleanup_handlers()
-    
-    def frame_change_post(self, scene, depsgraph):
+        self.cleanup_all()
+
+    def handle_frame_change_post(self, scene, depsgraph):
         """Handler for frame change"""
         if not self.is_rendering:
             return
             
-        settings = scene.camera.data.cameraide_settings
+        camera = self.cameras[self.current_index]
+        settings = camera.data.cameraide_settings
+        
+        print(f"=== Frame Change: {scene.frame_current}/{settings.frame_end} ===")
+        
+        # Update last frame time
+        self._last_frame_time = time.time()
+        self._last_frame = scene.frame_current
+        
         if scene.frame_current >= settings.frame_end:
-            print(f"Detected end frame {scene.frame_current}, completing render")
-            self.is_rendering = False
-            self.cleanup_handlers()
-    
+            print("=== Frame change detected completion ===")
+            self.force_render_complete(bpy.context)
+
+    def check_render_timeout(self, context):
+        """Check if render is taking too long or stuck"""
+        if not self._render_start_time:
+            return False
+            
+        current_time = time.time()
+        current_frame = context.scene.frame_current
+        
+        # If frame hasn't changed in 3 seconds, increment stuck counter
+        if self._last_frame == current_frame:
+            if current_time - self._last_frame_time > 3:
+                self._frame_stuck_count += 1
+                print(f"=== Frame stuck detection: count = {self._frame_stuck_count} ===")
+                if self._frame_stuck_count >= 3:  # If stuck for 3 checks, force completion
+                    print("=== Force completing render due to stuck frames ===")
+                    return True
+        else:
+            self._frame_stuck_count = 0
+            self._last_frame = current_frame
+            self._last_frame_time = current_time
+            
+        # If total render time > 30 seconds, force completion
+        if current_time - self._render_start_time > 30:
+            print("=== Force completing render due to timeout ===")
+            return True
+            
+        return False
+
+    def force_render_complete(self, context):
+        """Force render to complete and move to next camera"""
+        print("=== Forcing render completion ===")
+        self.is_rendering = False
+        self._render_start_time = None
+        self._last_frame_time = None
+        self._frame_stuck_count = 0
+        
+        # Force viewport render to stop
+        try:
+            bpy.ops.render.render('INVOKE_DEFAULT', animation=False)
+            bpy.ops.render.render('INVOKE_DEFAULT', animation=False)
+        except:
+            pass
+
     def prepare_next_camera(self, context):
         """Prepare the next camera for rendering"""
         self.current_index += 1
         camera = self.cameras[self.current_index]
-        print(f"\nPreparing camera {self.current_index + 1}/{len(self.cameras)}: {camera.name}")
+        print(f"\n=== Preparing camera {self.current_index + 1}/{len(self.cameras)}: {camera.name} ===")
         
         context.scene.camera = camera
         for area in context.screen.areas:
@@ -347,51 +401,96 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
         RenderCleanupManager.apply_camera_settings(context, camera)
         
         return camera
-    
-    def render_complete(self, scene, depsgraph):
-        """Handler for render completion"""
-        print("Render complete callback triggered")
-        self.is_rendering = False
-        
-        # If this was the last camera, clean up everything
-        if self.current_index >= len(self.cameras) - 1:
-            print("Final camera complete, ending modal")
-            self.cleanup_handlers()
-            if self._timer:
-                bpy.context.window_manager.event_timer_remove(self._timer)
-                self._timer = None
-            RenderCleanupManager.restore_settings(bpy.context)
-            return
 
     def modal(self, context, event):
         if event.type == 'TIMER':
-            if self._timer is None:  # Timer was removed, we're done
+            print(f"\n=== Modal tick: is_rendering = {self.is_rendering} ===")
+            if self.is_rendering:
+                current_camera = self.cameras[self.current_index]
+                print(f"Current Frame: {context.scene.frame_current}")
+                print(f"Current Camera: {current_camera.name}")
+                print(f"End Frame: {current_camera.data.cameraide_settings.frame_end}")
+            
+            if self._timer is None:
+                print("Timer was removed, finishing modal")
                 return {'FINISHED'}
-                
+            
             if not self.is_rendering:
                 if self.current_index < len(self.cameras) - 1:
+                    # Setup next camera
                     camera = self.prepare_next_camera(context)
-                    print(f"Starting render for camera: {camera.name}")
+                    
+                    # Reset render state
+                    self._render_start_time = time.time()
+                    self._last_frame_time = time.time()
+                    self._frame_stuck_count = 0
+                    self._last_frame = context.scene.frame_current
+                    
+                    # Register handlers
+                    print("Registering render handlers")
+                    if self._frame_change_post not in bpy.app.handlers.frame_change_post:
+                        bpy.app.handlers.frame_change_post.append(self._frame_change_post)
+                    if self._render_cancel not in bpy.app.handlers.render_cancel:
+                        bpy.app.handlers.render_cancel.append(self._render_cancel)
+                    
+                    # Reset frame to start
+                    context.scene.frame_current = camera.data.cameraide_settings.frame_start
+                    
+                    # Set rendering flag and start render
+                    print(f"Starting viewport render for camera: {camera.name}")
                     self.is_rendering = True
-                    
-                    # Add handlers including render_complete
-                    bpy.app.handlers.render_complete.append(self.render_complete)
-                    bpy.app.handlers.render_cancel.append(self.render_cancel)
-                    
                     bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
                                         sequencer=False, write_still=False, view_context=True)
                 else:
+                    print("All cameras completed, finishing modal")
+                    self.cleanup_all()
                     return {'FINISHED'}
+            else:
+                current_camera = self.cameras[self.current_index]
+                settings = current_camera.data.cameraide_settings
+                
+                # Multiple conditions to force render completion
+                force_complete = False
+                
+                # 1. Check if we're at or past end frame
+                if context.scene.frame_current >= settings.frame_end:
+                    print("=== Force completing render - reached end frame ===")
+                    force_complete = True
+                    
+                # 2. Check for timeout or stuck frames
+                elif self.check_render_timeout(context):
+                    force_complete = True
+                    
+                # 3. Check if render seems to be done based on frame progress
+                elif context.scene.frame_current > 1 and context.scene.frame_current >= settings.frame_end - 1:
+                    print("=== Force completing render - near end frame ===")
+                    force_complete = True
+                
+                if force_complete:
+                    self.force_render_complete(context)
         
         return {'PASS_THROUGH'}
 
     def cleanup_handlers(self):
-        """Remove all render handlers"""
-        if self.render_complete in bpy.app.handlers.render_complete:
-            bpy.app.handlers.render_complete.remove(self.render_complete)
-        if self.render_cancel in bpy.app.handlers.render_cancel:
-            bpy.app.handlers.render_cancel.remove(self.render_cancel)
-    
+        """Remove render handlers"""
+        print("Cleaning up render handlers")
+        if self._frame_change_post in bpy.app.handlers.frame_change_post:
+            bpy.app.handlers.frame_change_post.remove(self._frame_change_post)
+        if self._render_cancel in bpy.app.handlers.render_cancel:
+            bpy.app.handlers.render_cancel.remove(self._render_cancel)
+
+    def cleanup_all(self):
+        """Complete cleanup of all handlers and timers"""
+        print("Performing complete cleanup")
+        self.cleanup_handlers()
+        if self._timer:
+            bpy.context.window_manager.event_timer_remove(self._timer)
+            self._timer = None
+        RenderCleanupManager.restore_settings(bpy.context)
+        self._render_start_time = None
+        self._last_frame_time = None
+        self._frame_stuck_count = 0
+
     def execute(self, context):
         try:
             self.cameras = [obj for obj in context.scene.objects 
@@ -402,15 +501,17 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
                 self.report({'WARNING'}, "No cameras with Cameraide settings enabled")
                 return {'CANCELLED'}
             
-            print(f"\nFound {len(self.cameras)} cameras to render")
+            print(f"\n=== Starting batch render for {len(self.cameras)} cameras ===")
             
             self.current_index = -1
             self.is_rendering = False
-            self._last_frame = None
+            self._render_start_time = None
+            self._last_frame_time = None
+            self._frame_stuck_count = 0
             
             # Add timer for modal
             wm = context.window_manager
-            self._timer = wm.event_timer_add(3, window=context.window)
+            self._timer = wm.event_timer_add(0.5, window=context.window)
             wm.modal_handler_add(self)
             
             return {'RUNNING_MODAL'}
@@ -419,12 +520,10 @@ class CAMERA_OT_render_all_viewport(Operator, CameraRenderOperatorBase):
             self.report({'ERROR'}, f"Failed to start batch render: {str(e)}")
             print(f"Error: {str(e)}")
             return {'CANCELLED'}
-    
+
     def cancel(self, context):
-        if self._timer:
-            context.window_manager.event_timer_remove(self._timer)
-        self.cleanup_handlers()
-        RenderCleanupManager.restore_settings(context)
+        print("Operator cancelled")
+        self.cleanup_all()
         return {'CANCELLED'}
 
 class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
