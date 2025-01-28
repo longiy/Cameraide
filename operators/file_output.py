@@ -3,6 +3,7 @@ import bpy
 from bpy.types import Operator
 from ..utils.callbacks import on_befriend_toggle
 
+# In operators/file_output.py
 class CAMERA_OT_toggle_custom_settings(Operator):
     bl_idname = "camera.toggle_custom_settings"
     bl_label = "FRIENDSHIP"
@@ -19,6 +20,16 @@ class CAMERA_OT_toggle_custom_settings(Operator):
 
         settings = cam.data.cameraide_settings
         settings.use_custom_settings = not settings.use_custom_settings
+
+        # Clear any existing render flags for this camera
+        for handler in bpy.app.handlers.frame_change_post:
+            if hasattr(handler, 'has_rendered'):
+                print("Clearing render flags for viewport render handler")
+                handler.has_rendered = False
+            if hasattr(handler, 'current_camera') and handler.current_camera == cam:
+                print(f"Resetting handler state for camera: {cam.name}")
+                handler.current_camera = None
+                handler.last_frame = -1
         
         # Handle frame range sync when befriending/unfriending
         on_befriend_toggle(cam)
