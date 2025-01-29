@@ -96,45 +96,46 @@ class RenderCleanupManager:
                     setattr(context.scene, key, value)
             cls._original_settings = None
     
+    @staticmethod
+    def _ensure_even_resolution(x, y, percentage=100):
+        """Ensures resolution dimensions are even numbers by rounding up, accounting for scale"""
+        # First apply the percentage scale
+        scaled_x = int((x * percentage) / 100)
+        scaled_y = int((y * percentage) / 100)
+        
+        # Then ensure even numbers
+        return (scaled_x + (scaled_x % 2), scaled_y + (scaled_y % 2))
+    
     @classmethod
     def apply_camera_settings(cls, context, cam_obj):
         """Apply camera settings to render"""
-        from ..utils.callbacks import get_clean_camera_name  # Add this import
+        from ..utils.callbacks import get_clean_camera_name
         
         settings = cam_obj.data.cameraide_settings
         cls._current_camera = cam_obj
         
+        # Calculate resolution based on format
+        res_x = settings.resolution_x
+        res_y = settings.resolution_y
+        percentage = settings.resolution_percentage
+        
+        # Adjust resolution for video formats, including scaling
+        if settings.output_format in {'MP4', 'MKV', 'MOV'}:
+            res_x, res_y = cls._ensure_even_resolution(res_x, res_y, percentage)
+            # Set percentage to 100 since we've already applied it
+            context.scene.render.resolution_percentage = 100
+        else:
+            # For non-video formats, use original values
+            context.scene.render.resolution_percentage = percentage
+            
         # Basic settings
         context.scene.frame_start = settings.frame_start
         context.scene.frame_end = settings.frame_end
         context.scene.frame_step = settings.frame_step
-        context.scene.render.resolution_x = settings.resolution_x
-        context.scene.render.resolution_y = settings.resolution_y
-        context.scene.render.resolution_percentage = settings.resolution_percentage
+        context.scene.render.resolution_x = res_x
+        context.scene.render.resolution_y = res_y
         context.scene.render.film_transparent = settings.film_transparent
         context.scene.render.use_stamp = settings.burn_metadata
-
-        # Construct full output path
-        base_path = bpy.path.abspath(settings.output_path)
-        subfolder = settings.output_subfolder
-        # Use clean camera name when including camera name in filename
-        if settings.include_camera_name:
-            clean_name = get_clean_camera_name(cam_obj)
-            filename = f"{clean_name}_{settings.output_filename}"
-        else:
-            filename = settings.output_filename
-            
-        filepath = os.path.join(base_path, subfolder, filename)
-        context.scene.render.filepath = filepath
-        
-        # Format settings
-        if settings.output_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
-            context.scene.render.image_settings.file_format = settings.output_format
-            # Apply format-specific settings
-            cls._apply_format_settings(context, settings)
-        else:  # Video formats
-            context.scene.render.image_settings.file_format = 'FFMPEG'
-            cls._apply_video_settings(context, settings)
 
     @classmethod
     def _apply_format_settings(cls, context, settings):
@@ -262,8 +263,6 @@ class CAMERA_OT_render_selected_normal(Operator):
     def poll(cls, context):
         return context.active_object and context.active_object.type == 'CAMERA'
     
-    
-    
     def execute(self, context):
         cam_obj = context.active_object
         settings = cam_obj.data.cameraide_settings
@@ -276,12 +275,31 @@ class CAMERA_OT_render_selected_normal(Operator):
             # Store settings and register handlers
             RenderCleanupManager.store_settings(context)
             
+            # Debug print before applying settings
+            print(f"Before settings: {context.scene.render.resolution_x}x{context.scene.render.resolution_y}")
+            
             # Apply camera settings
             context.scene.camera = cam_obj
             RenderCleanupManager.apply_camera_settings(context, cam_obj)
             
+            # Debug print after applying settings
+            print(f"After settings: {context.scene.render.resolution_x}x{context.scene.render.resolution_y}")
+            
+            # Double-check resolution is even for video formats
+            if settings.output_format in {'MP4', 'MKV', 'MOV'}:
+                res_x = context.scene.render.resolution_x
+                res_y = context.scene.render.resolution_y
+                if res_x % 2 or res_y % 2:
+                    context.scene.render.resolution_x += (res_x % 2)
+                    context.scene.render.resolution_y += (res_y % 2)
+                    print(f"Adjusted to even: {context.scene.render.resolution_x}x{context.scene.render.resolution_y}")
+            
             # Start render
             bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
+            
+            # Debug print after render starts
+            print(f"After render start: {context.scene.render.resolution_x}x{context.scene.render.resolution_y}")
+            
             return {'FINISHED'}
             
         except Exception as e:
