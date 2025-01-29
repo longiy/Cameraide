@@ -436,12 +436,12 @@ class CAMERA_OT_render_all_viewport(Operator):
         
         # Check both conditions:
         # 1. We've reached the end frame
-        # 2. We've been at frame 0 for at least 3 seconds
+        # 2. We've been at frame 0 for at least 1 seconds
         if self._has_rendered and current_frame == 0 and self._frame_zero_time:
             time_at_zero = time.time() - self._frame_zero_time
             print(f"Time at frame 0: {time_at_zero} seconds")
             
-            if time_at_zero >= 3:
+            if time_at_zero >= 1:
                 print("Render complete detected!")
                 return True
             
