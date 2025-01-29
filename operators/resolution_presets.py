@@ -66,10 +66,18 @@ class CAMERA_OT_resolution_preset_apply(Operator):
         old_res_y = context.scene.render.resolution_y
 
         try:
-            # Execute the preset file
-            bpy.ops.script.execute_preset(filepath=self.preset_filepath, menu_idname="RENDER_MT_preset")
+            # Store current render settings
+            old_res_x = context.scene.render.resolution_x
+            old_res_y = context.scene.render.resolution_y
             
-            # Get the new resolution from render settings
+            # Read and execute the preset file
+            with open(self.preset_filepath, 'r') as f:
+                preset_code = f.read()
+                # The preset files use 'render' to refer to scene.render
+                render = context.scene.render
+                exec(preset_code)
+            
+            # Get the new resolution
             new_res_x = context.scene.render.resolution_x
             new_res_y = context.scene.render.resolution_y
 
