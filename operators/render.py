@@ -355,12 +355,13 @@ class CAMERA_OT_render_all_viewport(Operator):
     bl_label = "Render All Cameras"
     bl_description = "Render all Cameras with Viewport render"
     
-    # Make these class variables instead of instance variables
+    # Class variables
     _current_camera = None
     _current_index = -1
     _has_rendered = False
     _last_frame = -1
     _timer = None
+    _frame_zero_time = None  # Track when we first hit frame 0
 
     @classmethod
     def reset_flags(cls):
@@ -370,6 +371,7 @@ class CAMERA_OT_render_all_viewport(Operator):
         cls._current_index = -1
         cls._has_rendered = False
         cls._last_frame = -1
+        cls._frame_zero_time = None
         
         # Clear frame change handlers
         handlers_to_remove = []
@@ -386,40 +388,62 @@ class CAMERA_OT_render_all_viewport(Operator):
     @classmethod
     def frame_change(cls, scene, depsgraph):
         """Frame change handler"""
+        import time
+        
         current_frame = scene.frame_current
-        start_frame = cls._current_camera.data.cameraide_settings.frame_start if cls._current_camera else 0
+        if not cls._current_camera:
+            return
+            
+        settings = cls._current_camera.data.cameraide_settings
+        end_frame = settings.frame_end
         
         print(f"=== Frame Change ===")
         print(f"Current Frame: {current_frame}")
-        print(f"Start Frame: {start_frame}")
-        print(f"Has Rendered: {cls._has_rendered}")
+        print(f"End Frame: {end_frame}")
+        print(f"Last Frame: {cls._last_frame}")
         
-        # If we see a frame higher than start, we're in a render cycle
-        if current_frame > start_frame:
+        # Track if we've reached the end frame
+        if current_frame >= end_frame:
             cls._has_rendered = True
-            print("Setting has_rendered to True")
+            print("Reached end frame - setting has_rendered to True")
+        
+        # Track when we first hit frame 0
+        if current_frame == 0:
+            if cls._frame_zero_time is None:
+                cls._frame_zero_time = time.time()
+                print(f"First time at frame 0 - setting timestamp: {cls._frame_zero_time}")
+        else:
+            cls._frame_zero_time = None
             
         cls._last_frame = current_frame
     
     def check_render_complete(self, context):
         """Check if current camera render is complete"""
+        import time
+        
         if not self._current_camera:
             print("No current camera")
             return False
             
         settings = self._current_camera.data.cameraide_settings
         current_frame = context.scene.frame_current
-        start_frame = settings.frame_start
+        end_frame = settings.frame_end
         
         print(f"=== Checking Completion ===")
-        print(f"Start frame: {start_frame}")
         print(f"Current frame: {current_frame}")
         print(f"Has rendered: {self._has_rendered}")
+        print(f"Frame zero time: {self._frame_zero_time}")
         
-        # If we've been through a render cycle and are back at start, render is complete
-        if self._has_rendered and current_frame == start_frame:
-            print("Render complete detected!")
-            return True
+        # Check both conditions:
+        # 1. We've reached the end frame
+        # 2. We've been at frame 0 for at least 3 seconds
+        if self._has_rendered and current_frame == 0 and self._frame_zero_time:
+            time_at_zero = time.time() - self._frame_zero_time
+            print(f"Time at frame 0: {time_at_zero} seconds")
+            
+            if time_at_zero >= 3:
+                print("Render complete detected!")
+                return True
             
         return False
         
