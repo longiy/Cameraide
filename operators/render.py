@@ -121,7 +121,12 @@ class RenderCleanupManager:
         
         # Adjust resolution for video formats, including scaling
         if settings.output_format in {'MP4', 'MKV', 'MOV'}:
-            res_x, res_y = cls._ensure_even_resolution(res_x, res_y, percentage)
+            # Apply percentage scale first
+            scaled_x = int((res_x * percentage) / 100)
+            scaled_y = int((res_y * percentage) / 100)
+            # Then ensure even numbers
+            res_x = scaled_x + (scaled_x % 2)
+            res_y = scaled_y + (scaled_y % 2)
             # Set percentage to 100 since we've already applied it
             context.scene.render.resolution_percentage = 100
         else:
@@ -136,6 +141,28 @@ class RenderCleanupManager:
         context.scene.render.resolution_y = res_y
         context.scene.render.film_transparent = settings.film_transparent
         context.scene.render.use_stamp = settings.burn_metadata
+
+        # Construct full output path
+        base_path = bpy.path.abspath(settings.output_path)
+        subfolder = settings.output_subfolder
+        # Use clean camera name when including camera name in filename
+        if settings.include_camera_name:
+            clean_name = get_clean_camera_name(cam_obj)
+            filename = f"{clean_name}_{settings.output_filename}"
+        else:
+            filename = settings.output_filename
+            
+        filepath = os.path.join(base_path, subfolder, filename)
+        context.scene.render.filepath = filepath
+        
+        # Format settings
+        if settings.output_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
+            context.scene.render.image_settings.file_format = settings.output_format
+            # Apply format-specific settings
+            cls._apply_format_settings(context, settings)
+        else:  # Video formats
+            context.scene.render.image_settings.file_format = 'FFMPEG'
+            cls._apply_video_settings(context, settings)
 
     @classmethod
     def _apply_format_settings(cls, context, settings):
@@ -328,16 +355,22 @@ class CAMERA_OT_render_all_viewport(Operator):
     bl_label = "Render All Cameras"
     bl_description = "Render all Cameras with Viewport render"
     
+    # Make these class variables instead of instance variables
+    _current_camera = None
+    _current_index = -1
+    _has_rendered = False
+    _last_frame = -1
     _timer = None
-    current_index: bpy.props.IntProperty(default=-1)
-    last_frame: bpy.props.IntProperty(default=-1)
-    has_rendered: bpy.props.BoolProperty(default=False)
-    current_camera = None
-    
+
     @classmethod
     def reset_flags(cls):
         """Reset all operator flags"""
         print("=== Resetting all viewport render flags ===")
+        cls._current_camera = None
+        cls._current_index = -1
+        cls._has_rendered = False
+        cls._last_frame = -1
+        
         # Clear frame change handlers
         handlers_to_remove = []
         for handler in bpy.app.handlers.frame_change_post:
@@ -350,48 +383,41 @@ class CAMERA_OT_render_all_viewport(Operator):
             bpy.app.handlers.frame_change_post.remove(handler)
             print("Removed old handler")
     
-    def __init__(self):
-        print("=== Initializing viewport render operator ===")
-        self.reset_flags()
-        self.current_index = -1
-        self.has_rendered = False
-        self.last_frame = -1
-        self.current_camera = None
-    
-    def frame_change(self, scene, depsgraph):
+    @classmethod
+    def frame_change(cls, scene, depsgraph):
         """Frame change handler"""
         current_frame = scene.frame_current
-        start_frame = self.current_camera.data.cameraide_settings.frame_start if self.current_camera else 0
+        start_frame = cls._current_camera.data.cameraide_settings.frame_start if cls._current_camera else 0
         
         print(f"=== Frame Change ===")
         print(f"Current Frame: {current_frame}")
         print(f"Start Frame: {start_frame}")
-        print(f"Has Rendered: {self.has_rendered}")
+        print(f"Has Rendered: {cls._has_rendered}")
         
         # If we see a frame higher than start, we're in a render cycle
         if current_frame > start_frame:
-            self.has_rendered = True
+            cls._has_rendered = True
             print("Setting has_rendered to True")
             
-        self.last_frame = current_frame
+        cls._last_frame = current_frame
     
     def check_render_complete(self, context):
         """Check if current camera render is complete"""
-        if not self.current_camera:
+        if not self._current_camera:
             print("No current camera")
             return False
             
-        settings = self.current_camera.data.cameraide_settings
+        settings = self._current_camera.data.cameraide_settings
         current_frame = context.scene.frame_current
         start_frame = settings.frame_start
         
         print(f"=== Checking Completion ===")
         print(f"Start frame: {start_frame}")
         print(f"Current frame: {current_frame}")
-        print(f"Has rendered: {self.has_rendered}")
+        print(f"Has rendered: {self._has_rendered}")
         
         # If we've been through a render cycle and are back at start, render is complete
-        if self.has_rendered and current_frame == start_frame:
+        if self._has_rendered and current_frame == start_frame:
             print("Render complete detected!")
             return True
             
@@ -400,24 +426,19 @@ class CAMERA_OT_render_all_viewport(Operator):
     def start_next_camera(self, context):
         """Setup and start render for next camera"""
         print("\n=== Starting Next Camera ===")
-        self.current_index += 1
-        self.current_camera = self.cameras[self.current_index]
-        print(f"Camera {self.current_index + 1}/{len(self.cameras)}: {self.current_camera.name}")
+        self.__class__._current_index += 1
+        self.__class__._current_camera = self.cameras[self._current_index]
+        print(f"Camera {self._current_index + 1}/{len(self.cameras)}: {self._current_camera.name}")
         
         # Reset render state
         print("Resetting render flags")
-        self.has_rendered = False
-        self.last_frame = -1
+        self.__class__._has_rendered = False
+        self.__class__._last_frame = -1
         
         # Setup camera and render settings
-        context.scene.camera = self.current_camera
+        context.scene.camera = self._current_camera
         RenderCleanupManager.store_settings(context)
-        RenderCleanupManager.apply_camera_settings(context, self.current_camera)
-        
-        # Reset frame
-        start_frame = self.current_camera.data.cameraide_settings.frame_start
-        context.scene.frame_current = start_frame
-        print(f"Reset to start frame: {start_frame}")
+        RenderCleanupManager.apply_camera_settings(context, self._current_camera)
         
         # Start render
         bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
@@ -436,15 +457,11 @@ class CAMERA_OT_render_all_viewport(Operator):
             return {'CANCELLED'}
         
         # Reset all operator properties
-        self.reset_flags()
-        self.current_index = -1
-        self.has_rendered = False
-        self.last_frame = -1
-        self.current_camera = None
+        self.__class__.reset_flags()
         
         # Add fresh frame change handler
-        if self.frame_change not in bpy.app.handlers.frame_change_post:
-            bpy.app.handlers.frame_change_post.append(self.frame_change)
+        if self.__class__.frame_change not in bpy.app.handlers.frame_change_post:
+            bpy.app.handlers.frame_change_post.append(self.__class__.frame_change)
         
         # Start timer and modal
         wm = context.window_manager
@@ -459,92 +476,25 @@ class CAMERA_OT_render_all_viewport(Operator):
         if self._timer:
             context.window_manager.event_timer_remove(self._timer)
         
-        if self.frame_change in bpy.app.handlers.frame_change_post:
-            bpy.app.handlers.frame_change_post.remove(self.frame_change)
+        if self.__class__.frame_change in bpy.app.handlers.frame_change_post:
+            bpy.app.handlers.frame_change_post.remove(self.__class__.frame_change)
             
         RenderCleanupManager.restore_settings(context)
-        self.reset_flags()
-    
-    def cancel(self, context):
-        print("Operator cancelled")
-        self.cleanup(context)
-        return {'CANCELLED'}    
-    _timer = None
-    current_index: bpy.props.IntProperty(default=-1)
-    last_frame: bpy.props.IntProperty(default=-1)
-    has_rendered: bpy.props.BoolProperty(default=False)  # Track if we've gone through frames
-    current_camera = None
-    
-    def frame_change(self, scene, depsgraph):
-        """Frame change handler"""
-        current_frame = scene.frame_current
-        start_frame = self.current_camera.data.cameraide_settings.frame_start if self.current_camera else 0
-        
-        # If we see a frame higher than start, we're in a render cycle
-        if current_frame > start_frame:
-            self.has_rendered = True
-            
-        self.last_frame = current_frame
-        print(f"Frame changed to: {current_frame} (has_rendered: {self.has_rendered})")
-    
-    def check_render_complete(self, context):
-        """Check if current camera render is complete"""
-        if not self.current_camera:
-            print("No current camera")
-            return False
-            
-        settings = self.current_camera.data.cameraide_settings
-        current_frame = context.scene.frame_current
-        start_frame = settings.frame_start
-        
-        print(f"Checking completion:")
-        print(f"Start frame: {start_frame}")
-        print(f"Current frame: {current_frame}")
-        print(f"Has rendered: {self.has_rendered}")
-        
-        # If we've been through a render cycle and are back at start, render is complete
-        if self.has_rendered and current_frame == start_frame:
-            print(f"Render complete detected - back at start after rendering")
-            return True
-            
-        return False
-        
-    def start_next_camera(self, context):
-        """Setup and start render for next camera"""
-        self.current_index += 1
-        self.current_camera = self.cameras[self.current_index]
-        print(f"\nStarting render for camera {self.current_index + 1}/{len(self.cameras)}: {self.current_camera.name}")
-        
-        # Reset render state
-        self.has_rendered = False
-        
-        # Setup camera and render settings
-        context.scene.camera = self.current_camera
-        RenderCleanupManager.store_settings(context)
-        RenderCleanupManager.apply_camera_settings(context, self.current_camera)
-        
-        # Reset frame
-        start_frame = self.current_camera.data.cameraide_settings.frame_start
-        context.scene.frame_current = start_frame
-        self.last_frame = start_frame
-        
-        # Start render
-        bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
-                            sequencer=False, write_still=False, view_context=True)
+        self.__class__.reset_flags()
     
     def modal(self, context, event):
         if event.type == 'TIMER':
             print("\n=== Modal Timer Tick ===")
-            print(f"Current Index: {self.current_index}")
-            print(f"Last Frame: {self.last_frame}")
+            print(f"Current Index: {self._current_index}")
+            print(f"Last Frame: {self._last_frame}")
             print(f"Current Frame: {context.scene.frame_current}")
             
-            if self.current_index == -1:  # First run
+            if self._current_index == -1:  # First run
                 print("First run - starting first camera")
                 self.start_next_camera(context)
             elif self.check_render_complete(context):
                 print("Render complete detected!")
-                if self.current_index >= len(self.cameras) - 1:
+                if self._current_index >= len(self.cameras) - 1:
                     print("All cameras completed")
                     self.cleanup(context)
                     return {'FINISHED'}
@@ -552,56 +502,9 @@ class CAMERA_OT_render_all_viewport(Operator):
                 self.start_next_camera(context)
         
         return {'PASS_THROUGH'}
-        
-    def start_next_camera(self, context):
-        """Setup and start render for next camera"""
-        self.current_index += 1
-        self.current_camera = self.cameras[self.current_index]
-        print(f"\nStarting render for camera {self.current_index + 1}/{len(self.cameras)}: {self.current_camera.name}")
-        
-        # Setup camera and render settings
-        context.scene.camera = self.current_camera
-        RenderCleanupManager.store_settings(context)
-        RenderCleanupManager.apply_camera_settings(context, self.current_camera)
-        
-        # Reset frame and timer
-        context.scene.frame_current = self.current_camera.data.cameraide_settings.frame_start
-        self.last_frame_change = time.time()
-        self.last_frame = context.scene.frame_current
-        
-        # Start render
-        bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
-                            sequencer=False, write_still=False, view_context=True)
-    
-    def cleanup(self, context):
-        """Clean up timer and restore settings"""
-        if self._timer:
-            context.window_manager.event_timer_remove(self._timer)
-        
-        if self.frame_change in bpy.app.handlers.frame_change_post:
-            bpy.app.handlers.frame_change_post.remove(self.frame_change)
-            
-        RenderCleanupManager.restore_settings(context)
-    
-    def execute(self, context):
-        self.cameras = [obj for obj in context.scene.objects 
-                       if obj.type == 'CAMERA' 
-                       and obj.data.cameraide_settings.use_custom_settings]
-        
-        if not self.cameras:
-            self.report({'WARNING'}, "No cameras with settings enabled")
-            return {'CANCELLED'}
-        
-        if self.frame_change not in bpy.app.handlers.frame_change_post:
-            bpy.app.handlers.frame_change_post.append(self.frame_change)
-        
-        wm = context.window_manager
-        self._timer = wm.event_timer_add(0.5, window=context.window)
-        wm.modal_handler_add(self)
-        
-        return {'RUNNING_MODAL'}
-    
+
     def cancel(self, context):
+        print("Operator cancelled")
         self.cleanup(context)
         return {'CANCELLED'}
     
