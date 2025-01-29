@@ -10,14 +10,17 @@ from .render import (register as register_render,
                     CAMERA_OT_render_selected_normal,
                     CameraRenderOperatorBase,)
 from .resolution import register as register_resolution, unregister as unregister_resolution
+from .resolution_presets import register as register_presets, unregister as unregister_presets
 
 def register():
     register_frame_range()
     register_file_output()
     register_render()
     register_resolution()
+    register_presets()
 
 def unregister():
+    unregister_presets()
     unregister_resolution()
     unregister_render()
     unregister_file_output()

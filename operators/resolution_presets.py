@@ -2,22 +2,25 @@
 
 import bpy
 from bpy.types import Menu, Operator
-import os
+from bpy.props import EnumProperty, StringProperty
 
-def get_presets():
-    """Get all render presets including custom ones"""
-    render_presets = []
-    preset_paths = bpy.utils.preset_paths("render")
-    
-    for preset_path in preset_paths:
-        if os.path.exists(preset_path):
-            for preset_file in sorted(os.listdir(preset_path)):
-                if preset_file.endswith(".py"):  # Blender actually stores presets as .py files
-                    name = os.path.splitext(preset_file)[0]
-                    filepath = os.path.join(preset_path, preset_file)
-                    render_presets.append((name, filepath))
-    
-    return render_presets
+# Resolution presets matching Blender's native ones
+PRESETS = [
+    ("4K_DCI", "4K DCI 2160p", "4096 x 2160", 4096, 2160),
+    ("4K_UHDTV", "4K UHDTV 2160p", "3840 x 2160", 3840, 2160),
+    ("4K_UW", "4K UW 1600p", "3840 x 1600", 3840, 1600),
+    ("DVCPRO_HD_720", "DVCPRO HD 720p", "1280 x 720", 1280, 720),
+    ("DVCPRO_HD_1080", "DVCPRO HD 1080p", "1920 x 1080", 1920, 1080),
+    ("HDTV_720", "HDTV 720p", "1280 x 720", 1280, 720),
+    ("HDTV_1080", "HDTV 1080p", "1920 x 1080", 1920, 1080),
+    ("HDV_1080", "HDV 1080p", "1440 x 1080", 1440, 1080),
+    ("HDV_NTSC", "HDV NTSC 1080p", "1440 x 1080", 1440, 1080),
+    ("HDV_PAL", "HDV PAL 1080p", "1440 x 1080", 1440, 1080),
+    ("TV_NTSC_4_3", "TV NTSC 4:3", "720 x 486", 720, 486),
+    ("TV_NTSC_16_9", "TV NTSC 16:9", "720 x 486", 720, 486),
+    ("TV_PAL_4_3", "TV PAL 4:3", "720 x 576", 720, 576),
+    ("TV_PAL_16_9", "TV PAL 16:9", "720 x 576", 720, 576),
+]
 
 class CAMERA_MT_resolution_presets_menu(Menu):
     bl_label = "Resolution Presets"
@@ -27,31 +30,26 @@ class CAMERA_MT_resolution_presets_menu(Menu):
         layout = self.layout
         layout.operator_context = 'EXEC_DEFAULT'
 
-        # Get and display all presets
-        for name, filepath in get_presets():
+        for identifier, name, desc, _, _ in PRESETS:
             props = layout.operator(
                 "camera.resolution_preset_apply",
                 text=name
             )
-            props.preset_filepath = filepath
+            props.preset_id = identifier
 
 class CAMERA_OT_resolution_preset_apply(Operator):
     bl_idname = "camera.resolution_preset_apply"
     bl_label = "Apply Resolution Preset"
-    bl_description = "Apply Blender's resolution preset to the camera"
+    bl_description = "Apply preset resolution values"
     bl_options = {'REGISTER', 'UNDO'}
 
-    preset_filepath: bpy.props.StringProperty(
-        name="Preset Path",
-        description="Path to the preset file",
+    preset_id: StringProperty(
+        name="Preset",
+        description="Identifier of the resolution preset",
         default=""
     )
 
     def execute(self, context):
-        if not self.preset_filepath or not os.path.exists(self.preset_filepath):
-            self.report({'ERROR'}, "Invalid preset path")
-            return {'CANCELLED'}
-
         # Get the active camera
         if context.active_object and context.active_object.type == 'CAMERA':
             cam = context.active_object.data
@@ -61,44 +59,22 @@ class CAMERA_OT_resolution_preset_apply(Operator):
             self.report({'ERROR'}, "No active camera found")
             return {'CANCELLED'}
 
-        # Store current render settings
-        old_res_x = context.scene.render.resolution_x
-        old_res_y = context.scene.render.resolution_y
-
-        try:
-            # Store current render settings
-            old_res_x = context.scene.render.resolution_x
-            old_res_y = context.scene.render.resolution_y
-            
-            # Read and execute the preset file
-            with open(self.preset_filepath, 'r') as f:
-                preset_code = f.read()
-                # The preset files use 'render' to refer to scene.render
-                render = context.scene.render
-                exec(preset_code)
-            
-            # Get the new resolution
-            new_res_x = context.scene.render.resolution_x
-            new_res_y = context.scene.render.resolution_y
-
-            # Apply to camera settings
-            settings = cam.cameraide_settings
-            settings.resolution_x = new_res_x
-            settings.resolution_y = new_res_y
-
-            # Restore original render settings
-            context.scene.render.resolution_x = old_res_x
-            context.scene.render.resolution_y = old_res_y
-
-            # Update viewport if needed
-            from ..utils.callbacks import update_viewport_resolution
-            update_viewport_resolution(context)
-
-            return {'FINISHED'}
-
-        except Exception as e:
-            self.report({'ERROR'}, f"Failed to apply preset: {str(e)}")
+        # Find the matching preset
+        preset = next((p for p in PRESETS if p[0] == self.preset_id), None)
+        if not preset:
+            self.report({'ERROR'}, f"Preset {self.preset_id} not found")
             return {'CANCELLED'}
+
+        # Apply the preset
+        settings = cam.cameraide_settings
+        settings.resolution_x = preset[3]  # Width
+        settings.resolution_y = preset[4]  # Height
+
+        # Update the viewport if needed
+        from ..utils.callbacks import update_viewport_resolution
+        update_viewport_resolution(context)
+
+        return {'FINISHED'}
 
 def register():
     bpy.utils.register_class(CAMERA_MT_resolution_presets_menu)
