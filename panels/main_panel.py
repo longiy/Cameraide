@@ -3,7 +3,7 @@ import bpy
 from bpy.types import Panel
 
 class CAMERAIDE_PT_main_panel(Panel):
-    bl_label = "Cameraide 1.0.0"
+    bl_label = "Cameraide 1.0.5"
     bl_idname = "CAMERAIDE_PT_main_panel"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'

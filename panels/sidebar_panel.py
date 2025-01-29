@@ -3,7 +3,7 @@ import bpy
 from bpy.types import Panel
 
 class CAMERAIDE_PT_sidebar_panel(Panel):
-    bl_label = "Cameraide 1.0.2"
+    bl_label = "Cameraide 1.0.5"
     bl_idname = "CAMERAIDE_PT_sidebar_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -38,17 +38,37 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             row.operator("camera.toggle_custom_settings", text=f"{camera_name}", icon='DECORATE')
 
         if settings.use_custom_settings:
-            # Resolution
+            
+              # Resolution
             box = layout.box()
-            col = box.column(align=True)  # Use column for compact spacing
+            col = box.column(align=True)
             col.label(text="Resolution")
             col.separator(factor=1)
-            row = col.row(align=True)
-            row.prop(settings, "resolution_x")
-            row.prop(settings, "resolution_y")
-            col.prop(settings, "resolution_percentage", slider=True)
-            col.operator("camera.swap_resolution", text="Swap Resolution", icon='ARROW_LEFTRIGHT')
 
+            # Resolution presets menu
+            row = col.row(align=True)
+            row.menu("CAMERA_MT_resolution_presets_menu", text="Presets")
+            
+            # Resolution X/Y with swap button
+            row = col.row(align=True)
+            split = row.split(factor=0.43, align=True)
+            split.prop(settings, "resolution_x")
+            
+            subsplit = split.split(factor=0.16, align=True)
+            subsplit.operator("camera.swap_resolution", text="", icon='ARROW_LEFTRIGHT')
+            subsplit.prop(settings, "resolution_y")
+
+            
+            # FPS and Aspect in one row
+            row = col.row(align=True)
+            row.prop(settings, "pixel_aspect_x", text="X")
+            row.prop(settings, "fps", text="FPS")
+            row.prop(settings, "pixel_aspect_y", text="Y")
+            
+            
+             # Scale slider in its own row
+            col.prop(settings, "resolution_percentage", text="Scale", slider=True)
+            
             # Frame Range
             box = layout.box()
             col = box.column(align=True)  # Use column for compact spacing

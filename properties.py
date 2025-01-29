@@ -37,6 +37,43 @@ class CameraideSettings(PropertyGroup):
         subtype='PERCENTAGE'
     )
     
+    # FPS Settings
+    fps: FloatProperty(
+        name="FPS",
+        description="Frames per second",
+        min=1.0,
+        max=120.0,
+        default=24.0,
+        precision=3,  # Allow 3 decimal places internally
+        step=1,       # Step by whole numbers when dragging
+        unit='NONE',  # Don't use any unit system
+        subtype='NONE',  # Don't use any special subtype
+    )
+    
+    # Pixel Aspect Ratio
+    pixel_aspect_x: FloatProperty(
+        name="X",
+        description="Pixel aspect ratio X",
+        min=0.1,
+        max=5.0,
+        default=1.0,
+        precision=3,  # Allow 3 decimal places internally
+        step=1,       # Step by whole numbers when dragging
+        unit='NONE',
+        subtype='NONE',
+    )
+    pixel_aspect_y: FloatProperty(
+        name="Y",
+        description="Pixel aspect ratio Y",
+        min=0.1,
+        max=5.0,
+        default=1.0,
+        precision=3,  # Allow 3 decimal places internally
+        step=1,       # Step by whole numbers when dragging
+        unit='NONE',
+        subtype='NONE',
+    )
+    
     # Frame Range Settings
     stored_frame_start: IntProperty(
         name="Stored Start Frame",
