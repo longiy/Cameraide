@@ -3,7 +3,7 @@ import bpy
 from bpy.types import Panel
 
 class CAMERAIDE_PT_sidebar_panel(Panel):
-    bl_label = "Cameraide 1.0.5"
+    bl_label = "Cameraide 1.0.4"
     bl_idname = "CAMERAIDE_PT_sidebar_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -39,35 +39,32 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
 
         if settings.use_custom_settings:
             
-              # Resolution
+           
+             # Resolution
             box = layout.box()
             col = box.column(align=True)
             col.label(text="Resolution")
             col.separator(factor=1)
-
-            # Resolution presets menu
-            row = col.row(align=True)
-            row.menu("CAMERA_MT_resolution_presets_menu", text="Presets")
             
-            # Resolution X/Y with swap button
+            # Resolution controls with centered swap button
             row = col.row(align=True)
+            # First split: 43% for X (slightly smaller to compensate)
             split = row.split(factor=0.43, align=True)
             split.prop(settings, "resolution_x")
             
-            subsplit = split.split(factor=0.16, align=True)
+            # Second split of remaining 57%: small portion for swap
+            subsplit = split.split(factor=0.16, align=True)  # Smaller factor for swap
             subsplit.operator("camera.swap_resolution", text="", icon='ARROW_LEFTRIGHT')
+            
+            # Remaining space for Y (should appear equal to X now)
             subsplit.prop(settings, "resolution_y")
-
             
-            # FPS and Aspect in one row
+            col.prop(settings, "resolution_percentage", slider=True)
+            
+            # Resolution presets menu
             row = col.row(align=True)
-            row.prop(settings, "pixel_aspect_x", text="X")
-            row.prop(settings, "fps", text="FPS")
-            row.prop(settings, "pixel_aspect_y", text="Y")
-            
-            
-             # Scale slider in its own row
-            col.prop(settings, "resolution_percentage", text="Scale", slider=True)
+            row.menu("CAMERA_MT_resolution_presets_menu", text="Presets")
+
             
             # Frame Range
             box = layout.box()

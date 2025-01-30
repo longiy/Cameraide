@@ -69,9 +69,6 @@ class CAMERA_OT_resolution_preset_apply(Operator):
             # Store current render settings
             old_res_x = context.scene.render.resolution_x
             old_res_y = context.scene.render.resolution_y
-            old_fps = context.scene.render.fps
-            old_aspect_x = context.scene.render.pixel_aspect_x
-            old_aspect_y = context.scene.render.pixel_aspect_y
             
             # Read and execute the preset file
             with open(self.preset_filepath, 'r') as f:
@@ -80,27 +77,18 @@ class CAMERA_OT_resolution_preset_apply(Operator):
                 render = context.scene.render
                 exec(preset_code)
             
-            # Get all the new values
+            # Get the new resolution
             new_res_x = context.scene.render.resolution_x
             new_res_y = context.scene.render.resolution_y
-            new_fps = context.scene.render.fps
-            new_aspect_x = context.scene.render.pixel_aspect_x
-            new_aspect_y = context.scene.render.pixel_aspect_y
 
             # Apply to camera settings
             settings = cam.cameraide_settings
             settings.resolution_x = new_res_x
             settings.resolution_y = new_res_y
-            settings.fps = new_fps
-            settings.pixel_aspect_x = new_aspect_x
-            settings.pixel_aspect_y = new_aspect_y
 
             # Restore original render settings
             context.scene.render.resolution_x = old_res_x
             context.scene.render.resolution_y = old_res_y
-            context.scene.render.fps = old_fps
-            context.scene.render.pixel_aspect_x = old_aspect_x
-            context.scene.render.pixel_aspect_y = old_aspect_y
 
             # Update viewport if needed
             from ..utils.callbacks import update_viewport_resolution
