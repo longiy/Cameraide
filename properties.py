@@ -290,6 +290,34 @@ class CameraideSettings(PropertyGroup):
         description="Temporarily remove camera markers during rendering",
         default=True
     )
+    
+      # UI Display Properties
+    show_resolution_settings: BoolProperty(
+        name="Show Resolution Settings",
+        description="Show or hide resolution settings",
+        default=True
+    )
+    show_frame_range: BoolProperty(
+        name="Show Frame Range",
+        description="Show or hide frame range settings",
+        default=True
+    )
+    show_file_output: BoolProperty(
+        name="Show File Output",
+        description="Show or hide file output settings",
+        default=True
+    )
+    show_format_settings: BoolProperty(
+        name="Show Format Settings",
+        description="Show or hide format specific settings",
+        default=True
+    )
+    show_extra_settings: BoolProperty(
+        name="Show Extra Settings",
+        description="Show or hide extra settings",
+        default=False
+    )
+
 
 def register():
     bpy.utils.register_class(CameraideSettings)
