@@ -3,7 +3,7 @@ import bpy
 from bpy.types import Panel
 
 class CAMERAIDE_PT_sidebar_panel(Panel):
-    bl_label = "Cameraide 1.0.4"
+    bl_label = "Cameraide 1.0.5"
     bl_idname = "CAMERAIDE_PT_sidebar_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
