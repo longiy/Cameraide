@@ -1,7 +1,8 @@
 # ❤️🎥 Cameraide - Camera Settings Manager for Blender
 A Blender addon that adds custom settings for each camera with improved UI and features. Perfect for projects requiring different render settings per camera without complex render management systems.
 
-![Image Description](https://github.com/longiy/static-assets/blob/main/cameraide-assets/Cameraid_Preview.png)
+[![Image Description](https://github.com/longiy/static-assets/blob/main/cameraide-assets/Cameraid_Preview.png)](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_Preview.png)
+[![Image Description](https://github.com/longiy/static-assets/blob/main/cameraide-assets/Cameraid_Preview.png)](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_Preview2.png)
 
 ## 🎯 Purpose
 Cameraide is designed to streamline workflow for artists who create multiple renders and playblasts during their work process. It's particularly valuable when:
