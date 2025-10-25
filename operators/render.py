@@ -532,7 +532,113 @@ class CAMERA_OT_render_all_viewport(Operator):
         self.cleanup(context)
         return {'CANCELLED'}
     
-class CAMERA_OT_render_all_normal(Operator, CameraRenderOperatorBase):
+class CAMERA_OT_render_all_normal(Operator):
+    bl_idname = "camera.render_all_normal"
+    bl_label = "Render All Cameras (Normal)"
+    bl_description = "Render all Cameras with Normal render"
+    
+    _cameras = None
+    _current_index = -1
+    _render_complete = False
+    
+    @classmethod
+    def poll(cls, context):
+        """Ensure at least one camera with Cameraide settings exists"""
+        return any(
+            obj.type == 'CAMERA' and obj.data.cameraide_settings.use_custom_settings 
+            for obj in context.scene.objects
+        )
+    
+    def execute(self, context):
+        # Collect all cameras with Cameraide settings
+        self._cameras = [
+            obj for obj in context.scene.objects 
+            if obj.type == 'CAMERA' and obj.data.cameraide_settings.use_custom_settings
+        ]
+        
+        if not self._cameras:
+            self.report({'WARNING'}, "No cameras with Cameraide settings found")
+            return {'CANCELLED'}
+        
+        # Reset tracking variables
+        self._current_index = -1
+        self._render_complete = False
+        
+        # Add render complete and cancel handlers
+        bpy.app.handlers.render_complete.append(self.render_complete_handler)
+        bpy.app.handlers.render_cancel.append(self.render_cancel_handler)
+        
+        # Start the first camera render
+        self.render_next_camera(context)
+        
+        return {'RUNNING_MODAL'}
+    
+    def render_next_camera(self, context):
+        """Prepare and start render for the next camera"""
+        self._current_index += 1
+        
+        # Check if we've rendered all cameras
+        if self._current_index >= len(self._cameras):
+            self.finish_rendering(context)
+            return
+        
+        # Get current camera
+        current_camera = self._cameras[self._current_index]
+        
+        # Set scene camera
+        context.scene.camera = current_camera
+        
+        # Store and apply camera-specific settings
+        RenderCleanupManager.store_settings(context)
+        RenderCleanupManager.apply_camera_settings(context, current_camera)
+        
+        # Print debug information
+        print(f"Rendering camera {self._current_index + 1}/{len(self._cameras)}: {current_camera.name}")
+        
+        # Start render
+        bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
+    
+    def render_complete_handler(self, scene, depsgraph):
+        """Handler called when a render is complete"""
+        if self._current_index < len(self._cameras) - 1:
+            # Render next camera
+            self.render_next_camera(bpy.context)
+        else:
+            # All cameras rendered
+            self._render_complete = True
+    
+    def render_cancel_handler(self, scene, depsgraph):
+        """Handler called if render is cancelled"""
+        self.finish_rendering(bpy.context)
+    
+    def finish_rendering(self, context):
+        """Cleanup after rendering all cameras"""
+        # Remove handlers
+        if self.render_complete_handler in bpy.app.handlers.render_complete:
+            bpy.app.handlers.render_complete.remove(self.render_complete_handler)
+        if self.render_cancel_handler in bpy.app.handlers.render_cancel:
+            bpy.app.handlers.render_cancel.remove(self.render_cancel_handler)
+        
+        # Restore original settings
+        RenderCleanupManager.restore_settings(context)
+        
+        # Reset tracking variables
+        self._cameras = None
+        self._current_index = -1
+        
+        # Print completion message
+        print("Batch rendering of all cameras complete")
+    
+    def modal(self, context, event):
+        """Modal operator to handle rendering process"""
+        if self._render_complete:
+            return {'FINISHED'}
+        return {'PASS_THROUGH'}
+    
+    def cancel(self, context):
+        """Handle operator cancellation"""
+        self.finish_rendering(context)
+        return {'CANCELLED'}
     bl_idname = "camera.render_all_normal"
     bl_label = "Render All Cameras (Normal)"
     bl_description = "Render all Cameras with Normal render"
