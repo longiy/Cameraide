@@ -17,6 +17,7 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
     def draw(self, context):
         layout = self.layout
 
+        # === BIG CAMERAIDE TOGGLE BUTTON ===
         if context.active_object and context.active_object.type == 'CAMERA':
             cam = context.active_object.data
             camera_name = context.active_object.name
@@ -36,7 +37,78 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             row.operator("camera.toggle_custom_settings", text=f"{camera_name}", icon='FUND', depress=True)
         else:
             row.operator("camera.toggle_custom_settings", text=f"{camera_name}", icon='DECORATE')
+        
+        layout.separator()
 
+        # === CAMERA LIST ===
+        all_cameras = [obj for obj in context.scene.objects if obj.type == 'CAMERA']
+        
+        if all_cameras:
+            cameraide_cameras = [c for c in all_cameras if c.data.cameraide_settings.use_custom_settings]
+            other_cameras = [c for c in all_cameras if not c.data.cameraide_settings.use_custom_settings]
+            
+            # Get or create scene property for collapsible state
+            scene = context.scene
+            if not hasattr(scene, 'cameraide_show_cameraide_list'):
+                scene.cameraide_show_cameraide_list = True
+            if not hasattr(scene, 'cameraide_show_other_list'):
+                scene.cameraide_show_other_list = False
+            
+            # Cameraide cameras section
+            if cameraide_cameras:
+                box = layout.box()
+                row = box.row(align=True)
+                row.prop(scene, "cameraide_show_cameraide_list",
+                    text="Cameraide Cameras",
+                    icon='TRIA_DOWN' if scene.cameraide_show_cameraide_list else 'TRIA_RIGHT',
+                    emboss=False
+                )
+                row.label(text="", icon='FUND')
+                
+                if scene.cameraide_show_cameraide_list:
+                    for cam_obj in cameraide_cameras:
+                        row = box.row(align=True)
+                        is_active = context.view_layer.objects.active == cam_obj
+                        op = row.operator(
+                            "cameraide.select_camera",
+                            text=cam_obj.name,
+                            icon='RADIOBUT_ON' if is_active else 'RADIOBUT_OFF',
+                            depress=is_active
+                        )
+                        op.camera_name = cam_obj.name
+                        
+                        op = row.operator("cameraide.remove_camera", text="", icon='X')
+                        op.camera_name = cam_obj.name
+            
+            # Other cameras section
+            if other_cameras:
+                box = layout.box()
+                row = box.row(align=True)
+                row.prop(scene, "cameraide_show_other_list",
+                    text="Other Cameras",
+                    icon='TRIA_DOWN' if scene.cameraide_show_other_list else 'TRIA_RIGHT',
+                    emboss=False
+                )
+                row.label(text="", icon='CAMERA_DATA')
+                
+                if scene.cameraide_show_other_list:
+                    for cam_obj in other_cameras:
+                        row = box.row(align=True)
+                        is_active = context.view_layer.objects.active == cam_obj
+                        op = row.operator(
+                            "cameraide.select_camera",
+                            text=cam_obj.name,
+                            icon='RADIOBUT_ON' if is_active else 'RADIOBUT_OFF',
+                            depress=is_active
+                        )
+                        op.camera_name = cam_obj.name
+                        
+                        op = row.operator("cameraide.add_camera", text="", icon='ADD')
+                        op.camera_name = cam_obj.name
+            
+            layout.separator()
+
+        # === REST OF SETTINGS (only show if camera has custom settings) ===
         if settings.use_custom_settings:
             # Resolution
             box = layout.box()
@@ -159,21 +231,33 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                 col.prop(settings, "burn_metadata")
 
             # Render Buttons (always visible when custom settings are enabled)
-            row = layout.row(align=True)
-            split = row.split(factor=0.85, align=True)
-            split.scale_y = 1.5
-            split.operator("camera.render_selected_viewport", text="Render Viewport", icon="RESTRICT_VIEW_OFF")
-            split.alert = True
-            split.operator("camera.render_all_viewport", text="All")
+            layout.separator()
             
-            row = layout.row(align=True)
-            split = row.split(factor=0.85, align=True)
-            split.scale_y = 1.5
-            split.operator("camera.render_selected_normal", text="Render Normal", icon="RESTRICT_RENDER_OFF")
-            split.alert = True
-            split.operator("camera.render_all_normal", text="All")
+            # Viewport Render Section
+            box = layout.box()
+            box.label(text="Viewport Render", icon='RESTRICT_VIEW_OFF')
+            
+            row = box.row(align=True)
+            row.scale_y = 1.3
+            row.operator("camera.render_snapshot_viewport", text="Snapshot", icon='RENDER_STILL')
+            row.operator("camera.render_selected_viewport", text="Playblast", icon='RENDER_ANIMATION')
+            row.operator("camera.render_all_viewport", text="All Cameras", icon='CAMERA_DATA')
+            
+            # Normal Render Section
+            box = layout.box()
+            box.label(text="Normal Render", icon='RESTRICT_RENDER_OFF')
+            
+            row = box.row(align=True)
+            row.scale_y = 1.3
+            row.operator("camera.render_snapshot_normal", text="Snapshot", icon='RENDER_STILL')
+            row.operator("camera.render_selected_normal", text="Playblast", icon='RENDER_ANIMATION')
+            row.operator("camera.render_all_normal", text="All Cameras", icon='CAMERA_DATA')
     
 def register():
+    # Register scene properties for collapsible lists
+    bpy.types.Scene.cameraide_show_cameraide_list = bpy.props.BoolProperty(default=True)
+    bpy.types.Scene.cameraide_show_other_list = bpy.props.BoolProperty(default=False)
+    
     try:
         bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)
     except:
@@ -185,3 +269,7 @@ def unregister():
         bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)
     except:
         pass
+    
+    # Unregister scene properties
+    del bpy.types.Scene.cameraide_show_cameraide_list
+    del bpy.types.Scene.cameraide_show_other_list
