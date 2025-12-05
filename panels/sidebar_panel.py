@@ -1,9 +1,38 @@
-# In panels/sidebar_panel.py
 import bpy
-from bpy.types import Panel
+from bpy.types import Panel, Operator
+
+class CAMERAIDE_OT_switch_to_timeline_mode(Operator):
+    """Switch to Timeline Markers mode"""
+    bl_idname = "cameraide.switch_to_timeline_mode"
+    bl_label = "Switch to Timeline Mode"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    camera_name: bpy.props.StringProperty()
+    
+    def execute(self, context):
+        camera_obj = context.scene.objects.get(self.camera_name)
+        if camera_obj and camera_obj.type == 'CAMERA':
+            camera_obj.data.cameraide_settings.frame_range_mode = 'TIMELINE_MARKERS'
+        return {'FINISHED'}
+
+
+class CAMERAIDE_OT_switch_to_percamera_mode(Operator):
+    """Switch to Per-Camera Ranges mode"""
+    bl_idname = "cameraide.switch_to_percamera_mode"
+    bl_label = "Switch to Per-Camera Mode"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    camera_name: bpy.props.StringProperty()
+    
+    def execute(self, context):
+        camera_obj = context.scene.objects.get(self.camera_name)
+        if camera_obj and camera_obj.type == 'CAMERA':
+            camera_obj.data.cameraide_settings.frame_range_mode = 'PER_CAMERA'
+        return {'FINISHED'}
+
 
 class CAMERAIDE_PT_sidebar_panel(Panel):
-    bl_label = "Cameraide 1.0.6"
+    bl_label = "Cameraide 1.0.7"
     bl_idname = "CAMERAIDE_PT_sidebar_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -17,20 +46,22 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
     def draw(self, context):
         layout = self.layout
 
-        # === BIG CAMERAIDE TOGGLE BUTTON ===
+        # Get active camera
         if context.active_object and context.active_object.type == 'CAMERA':
-            cam = context.active_object.data
-            camera_name = context.active_object.name
+            cam_obj = context.active_object
+            cam = cam_obj.data
+            camera_name = cam_obj.name
         elif context.scene.camera:
-            cam = context.scene.camera.data
-            camera_name = context.scene.camera.name
+            cam_obj = context.scene.camera
+            cam = cam_obj.data
+            camera_name = cam_obj.name
         else:
             layout.label(text="No active camera in the scene")
             return
 
         settings = cam.cameraide_settings
 
-        # Friend/Befriend button
+        # === BEFRIEND BUTTON ===
         row = layout.row()
         row.scale_y = 2.0
         if settings.use_custom_settings:
@@ -47,7 +78,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             cameraide_cameras = [c for c in all_cameras if c.data.cameraide_settings.use_custom_settings]
             other_cameras = [c for c in all_cameras if not c.data.cameraide_settings.use_custom_settings]
             
-            # Get or create scene property for collapsible state
             scene = context.scene
             if not hasattr(scene, 'cameraide_show_cameraide_list'):
                 scene.cameraide_show_cameraide_list = True
@@ -66,19 +96,19 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                 row.label(text="", icon='FUND')
                 
                 if scene.cameraide_show_cameraide_list:
-                    for cam_obj in cameraide_cameras:
+                    for cam_item in cameraide_cameras:
                         row = box.row(align=True)
-                        is_active = context.view_layer.objects.active == cam_obj
+                        is_active = context.view_layer.objects.active == cam_item
                         op = row.operator(
                             "cameraide.select_camera",
-                            text=cam_obj.name,
+                            text=cam_item.name,
                             icon='RADIOBUT_ON' if is_active else 'RADIOBUT_OFF',
                             depress=is_active
                         )
-                        op.camera_name = cam_obj.name
+                        op.camera_name = cam_item.name
                         
                         op = row.operator("cameraide.remove_camera", text="", icon='X')
-                        op.camera_name = cam_obj.name
+                        op.camera_name = cam_item.name
             
             # Other cameras section
             if other_cameras:
@@ -92,23 +122,23 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                 row.label(text="", icon='CAMERA_DATA')
                 
                 if scene.cameraide_show_other_list:
-                    for cam_obj in other_cameras:
+                    for cam_item in other_cameras:
                         row = box.row(align=True)
-                        is_active = context.view_layer.objects.active == cam_obj
+                        is_active = context.view_layer.objects.active == cam_item
                         op = row.operator(
                             "cameraide.select_camera",
-                            text=cam_obj.name,
+                            text=cam_item.name,
                             icon='RADIOBUT_ON' if is_active else 'RADIOBUT_OFF',
                             depress=is_active
                         )
-                        op.camera_name = cam_obj.name
+                        op.camera_name = cam_item.name
                         
                         op = row.operator("cameraide.add_camera", text="", icon='ADD')
-                        op.camera_name = cam_obj.name
+                        op.camera_name = cam_item.name
             
             layout.separator()
 
-        # === REST OF SETTINGS (only show if camera has custom settings) ===
+        # === SETTINGS ===
         if settings.use_custom_settings:
             # Resolution
             box = layout.box()
@@ -122,7 +152,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             if settings.show_resolution_settings:
                 col = box.column(align=True)
                 
-                # Resolution controls with centered swap button
                 row = col.row(align=True)
                 split = row.split(factor=0.43, align=True)
                 split.prop(settings, "resolution_x")
@@ -135,7 +164,7 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                 row = col.row(align=True)
                 row.menu("CAMERA_MT_resolution_presets_menu", text="Presets")
 
-            # Frame Range
+            # Frame Range - HYBRID DETECTION
             box = layout.box()
             row = box.row(align=True)
             row.prop(settings, "show_frame_range", 
@@ -146,14 +175,96 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             
             if settings.show_frame_range:
                 col = box.column(align=True)
-                row = col.row(align=True)
-                row.prop(settings, "frame_start")
-                row.prop(settings, "frame_end")
-                col.prop(settings, "frame_step")
-                col.operator("camera.toggle_frame_range_sync", 
-                    text="Sync " + ("ON" if settings.sync_frame_range else "OFF"), 
-                    icon='PREVIEW_RANGE',
-                    depress=settings.sync_frame_range)
+                
+                # Safety check
+                if not hasattr(settings, 'frame_range_mode'):
+                    settings.frame_range_mode = 'PER_CAMERA'
+                
+                # Import detection utilities
+                from ..utils.marker_detection import get_marker_count, get_marker_frame_ranges
+                
+                # Detect mismatch
+                has_markers = get_marker_count(cam_obj) > 0
+                current_mode = settings.frame_range_mode
+                
+                # Mode selector
+                col.prop(settings, "frame_range_mode", text="")
+                
+                # HYBRID DETECTION: Show mismatch warnings
+                if current_mode == 'PER_CAMERA' and has_markers:
+                    # Markers exist but using per-camera mode
+                    warn_box = col.box()
+                    warn_col = warn_box.column(align=True)
+                    warn_col.alert = True
+                    warn_col.scale_y = 0.9
+                    
+                    row = warn_col.row(align=True)
+                    row.label(text="Timeline markers detected", icon='INFO')
+                    
+                    marker_count = get_marker_count(cam_obj)
+                    ranges = get_marker_frame_ranges(cam_obj)
+                    if ranges:
+                        range_text = f"{len(ranges)} range{'s' if len(ranges) != 1 else ''}"
+                        warn_col.label(text=f"  {range_text} available")
+                    
+                    # Quick switch button
+                    op = warn_col.operator("cameraide.switch_to_timeline_mode", text="Switch to Timeline Mode", icon='FORWARD')
+                    op.camera_name = cam_obj.name
+                    
+                    col.separator(factor=0.3)
+                
+                elif current_mode == 'TIMELINE_MARKERS' and not has_markers:
+                    # Timeline mode but no markers
+                    warn_box = col.box()
+                    warn_col = warn_box.column(align=True)
+                    warn_col.alert = True
+                    warn_col.scale_y = 0.9
+                    
+                    warn_col.label(text="No timeline markers found", icon='ERROR')
+                    warn_col.label(text="  Add markers or switch mode")
+                    
+                    # Quick switch button
+                    op = warn_col.operator("cameraide.switch_to_percamera_mode", text="Switch to Per-Camera Mode", icon='FORWARD')
+                    op.camera_name = cam_obj.name
+                    
+                    col.separator(factor=0.3)
+                
+                # Mode-specific UI
+                if current_mode == 'TIMELINE_MARKERS':
+                    marker_count = get_marker_count(cam_obj)
+                    if marker_count > 0:
+                        # Show marker info
+                        info_box = col.box()
+                        info_col = info_box.column(align=True)
+                        info_col.scale_y = 0.8
+                        info_col.label(text=f"Using {marker_count} timeline marker{'s' if marker_count != 1 else ''}", icon='BOOKMARKS')
+                        
+                        # Show detected ranges
+                        ranges = get_marker_frame_ranges(cam_obj)
+                        if ranges:
+                            for i, (start, end) in enumerate(ranges, 1):
+                                info_col.label(text=f"  Range {i}: {start} - {end}")
+                        
+                        # Disabled controls showing detected values
+                        col.separator(factor=0.5)
+                        row = col.row(align=True)
+                        row.enabled = False
+                        row.prop(settings, "frame_start")
+                        row.prop(settings, "frame_end")
+                        row = col.row(align=True)
+                        row.enabled = False
+                        row.prop(settings, "frame_step")
+                
+                else:  # PER_CAMERA mode
+                    # Editable custom ranges
+                    row = col.row(align=True)
+                    row.prop(settings, "frame_start")
+                    row.prop(settings, "frame_end")
+                    col.prop(settings, "frame_step")
+                    col.operator("camera.toggle_frame_range_sync", 
+                        text="Sync " + ("ON" if settings.sync_frame_range else "OFF"), 
+                        icon='PREVIEW_RANGE',
+                        depress=settings.sync_frame_range)
 
             # File Output
             box = layout.box()
@@ -226,11 +337,10 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                     col.prop(settings, "overwrite_existing")
                 if settings.output_format in {'PNG', 'OPEN_EXR'}:
                     col.prop(settings, "film_transparent")
-                col.prop(settings, "ignore_markers")
                 col.prop(settings, "include_camera_name")
                 col.prop(settings, "burn_metadata")
 
-            # Render Buttons (always visible when custom settings are enabled)
+            # === RENDER BUTTONS ===
             layout.separator()
             
             # Viewport Render Section
@@ -252,12 +362,18 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             row.operator("camera.render_snapshot_normal", text="Snapshot", icon='RENDER_STILL')
             row.operator("camera.render_selected_normal", text="Playblast", icon='RENDER_ANIMATION')
             row.operator("camera.render_all_normal", text="All Cameras", icon='CAMERA_DATA')
-    
+
+
 def register():
-    # Register scene properties for collapsible lists
+    # Register operators
+    bpy.utils.register_class(CAMERAIDE_OT_switch_to_timeline_mode)
+    bpy.utils.register_class(CAMERAIDE_OT_switch_to_percamera_mode)
+    
+    # Register scene properties
     bpy.types.Scene.cameraide_show_cameraide_list = bpy.props.BoolProperty(default=True)
     bpy.types.Scene.cameraide_show_other_list = bpy.props.BoolProperty(default=False)
     
+    # Register panel
     try:
         bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)
     except:
@@ -265,10 +381,15 @@ def register():
     bpy.utils.register_class(CAMERAIDE_PT_sidebar_panel)
 
 def unregister():
+    # Unregister panel
     try:
         bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)
     except:
         pass
+    
+    # Unregister operators
+    bpy.utils.unregister_class(CAMERAIDE_OT_switch_to_percamera_mode)
+    bpy.utils.unregister_class(CAMERAIDE_OT_switch_to_timeline_mode)
     
     # Unregister scene properties
     del bpy.types.Scene.cameraide_show_cameraide_list

@@ -4,7 +4,7 @@ from contextlib import contextmanager
 HEART_PREFIX = "❤️ "
 
 class CameraFrameRanges:
-    ranges = {}  # Store frame ranges by camera name
+    ranges = {}
     is_updating = False
     previous_camera = None
 
@@ -19,7 +19,8 @@ class CameraFrameRanges:
             'start': settings.frame_start,
             'end': settings.frame_end,
             'befriended': settings.use_custom_settings,
-            'synced': settings.sync_frame_range
+            'synced': settings.sync_frame_range,
+            'mode': settings.frame_range_mode
         }
 
     @classmethod
@@ -62,25 +63,31 @@ def update_viewport_resolution(context):
     context.scene.render.resolution_percentage = settings.resolution_percentage
 
 def apply_frame_range_to_scene(camera_obj, scene):
-    """Apply camera frame range to scene"""
+    """Apply camera frame range to scene (only in PER_CAMERA mode)"""
     if not camera_obj or camera_obj.type != 'CAMERA':
         return
         
     settings = camera_obj.data.cameraide_settings
-    with prevent_recursive_update():
-        scene.frame_start = settings.frame_start
-        scene.frame_end = settings.frame_end
+    
+    # Only apply if in per-camera mode
+    if settings.frame_range_mode == 'PER_CAMERA':
+        with prevent_recursive_update():
+            scene.frame_start = settings.frame_start
+            scene.frame_end = settings.frame_end
 
 def store_scene_range_to_camera(camera_obj, scene):
-    """Store scene frame range in camera"""
+    """Store scene frame range in camera (only in PER_CAMERA mode)"""
     if not camera_obj or camera_obj.type != 'CAMERA':
         return
         
     settings = camera_obj.data.cameraide_settings
-    with prevent_recursive_update():
-        settings.frame_start = scene.frame_start
-        settings.frame_end = scene.frame_end
-    frame_manager.store_range(camera_obj)
+    
+    # Only store if in per-camera mode
+    if settings.frame_range_mode == 'PER_CAMERA':
+        with prevent_recursive_update():
+            settings.frame_start = scene.frame_start
+            settings.frame_end = scene.frame_end
+        frame_manager.store_range(camera_obj)
 
 def update_frame_start(self, context):
     """Frame start update callback"""
@@ -90,8 +97,9 @@ def update_frame_start(self, context):
     camera = context.scene.camera
     if not camera or camera.data.cameraide_settings != self:
         return
-        
-    if self.use_custom_settings and self.sync_frame_range:
+    
+    # Only sync if in per-camera mode and sync is enabled
+    if self.use_custom_settings and self.sync_frame_range and self.frame_range_mode == 'PER_CAMERA':
         with prevent_recursive_update():
             context.scene.frame_start = self.frame_start
             frame_manager.store_range(camera)
@@ -105,7 +113,8 @@ def update_frame_end(self, context):
     if not camera or camera.data.cameraide_settings != self:
         return
         
-    if self.use_custom_settings and self.sync_frame_range:
+    # Only sync if in per-camera mode and sync is enabled
+    if self.use_custom_settings and self.sync_frame_range and self.frame_range_mode == 'PER_CAMERA':
         with prevent_recursive_update():
             context.scene.frame_end = self.frame_end
             frame_manager.store_range(camera)
@@ -121,7 +130,9 @@ def on_active_camera_changed(scene):
         return
         
     settings = current_camera.data.cameraide_settings
-    if settings.use_custom_settings and settings.sync_frame_range:
+    
+    # Only apply frame range if in per-camera mode with sync enabled
+    if settings.use_custom_settings and settings.sync_frame_range and settings.frame_range_mode == 'PER_CAMERA':
         with prevent_recursive_update():
             scene.frame_start = settings.frame_start
             scene.frame_end = settings.frame_end
@@ -147,10 +158,8 @@ def update_camera_name(camera_obj, add_heart=True):
     current_name = camera_obj.name
     clean_name = get_clean_camera_name(camera_obj)
     
-    # Add heart prefix if requested
     new_name = HEART_PREFIX + clean_name if add_heart else clean_name
         
-    # Update the name if it's different
     if new_name != current_name:
         camera_obj.name = new_name
 
@@ -164,19 +173,21 @@ def on_befriend_toggle(camera_obj):
     
     with prevent_recursive_update():
         if settings.use_custom_settings:
-            # On befriend
+            # On befriend - auto-detect frame mode
+            from .marker_detection import auto_detect_frame_mode
+            settings.frame_range_mode = auto_detect_frame_mode(camera_obj)
+            
             stored = frame_manager.get_range(camera_obj)
             if stored:
                 settings.frame_start = stored['start']
                 settings.frame_end = stored['end']
-                if settings.sync_frame_range and camera_obj == scene.camera:
+                if settings.sync_frame_range and settings.frame_range_mode == 'PER_CAMERA' and camera_obj == scene.camera:
                     apply_frame_range_to_scene(camera_obj, scene)
-            # Add heart to camera name
+            
             update_camera_name(camera_obj, True)
         else:
             # On unfriend
             frame_manager.store_range(camera_obj)
-            # Remove heart from camera name
             update_camera_name(camera_obj, False)
         
         frame_manager.store_range(camera_obj)
@@ -190,14 +201,15 @@ def on_sync_toggle(camera_obj):
     settings = camera_obj.data.cameraide_settings
     
     with prevent_recursive_update():
-        if settings.sync_frame_range:
-            # On sync enable
+        if settings.sync_frame_range and settings.frame_range_mode == 'PER_CAMERA':
+            # On sync enable (only in per-camera mode)
             stored = frame_manager.get_range(camera_obj)
             if stored and camera_obj == scene.camera:
                 apply_frame_range_to_scene(camera_obj, scene)
         else:
             # On sync disable
             frame_manager.store_range(camera_obj)
+
 def register():
     frame_manager.clear()
     if on_active_camera_changed not in bpy.app.handlers.depsgraph_update_post:
@@ -207,11 +219,13 @@ def unregister():
     frame_manager.clear()
     if on_active_camera_changed in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(on_active_camera_changed)
+
 __all__ = [
     'update_viewport_resolution',
     'update_frame_start',
     'update_frame_end',
     'on_active_camera_changed',
     'on_befriend_toggle',
-    'on_sync_toggle'
+    'on_sync_toggle',
+    'get_clean_camera_name'
 ]

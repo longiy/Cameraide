@@ -7,12 +7,19 @@ from .utils.callbacks import (
     update_frame_end
 )
 
+def update_custom_settings(self, context):
+    """Callback when use_custom_settings is toggled"""
+    # Initialize frame_range_mode if it doesn't exist
+    if self.use_custom_settings and not hasattr(self, '_frame_range_mode'):
+        self.frame_range_mode = 'PER_CAMERA'
+
 class CameraideSettings(PropertyGroup):
     # Basic Settings
     use_custom_settings: BoolProperty(
         name="Enable",
         description="Enable custom settings for this camera",
-        default=False
+        default=False,
+        update=update_custom_settings
     )
     
     # Resolution Settings
@@ -35,6 +42,19 @@ class CameraideSettings(PropertyGroup):
         min=1,
         max=400,
         subtype='PERCENTAGE'
+    )
+    
+    # Frame Range Mode - REFACTORED (replaces ignore_markers)
+    frame_range_mode: EnumProperty(
+        name="Frame Range Mode",
+        description="Choose how frame ranges are determined for this camera",
+        items=[
+            ('TIMELINE_MARKERS', "Timeline Markers", 
+             "Use Blender's timeline camera markers to define frame ranges"),
+            ('PER_CAMERA', "Per-Camera Ranges", 
+             "Use custom frame ranges defined per camera (allows overlaps)"),
+        ],
+        default='PER_CAMERA'
     )
     
     # Frame Range Settings
@@ -71,7 +91,7 @@ class CameraideSettings(PropertyGroup):
         default=False
     )
     
-    # In properties.py
+    # Output Settings
     output_path: StringProperty(
         name="Path",
         description="Root output path",
@@ -85,12 +105,12 @@ class CameraideSettings(PropertyGroup):
         default="Folder"
     )
 
-    output_filename: StringProperty(  # Rename from file_name to output_filename for consistency
+    output_filename: StringProperty(
         name="Name",
         description="Output file name",
         default="Name"
-)
-    # Replace the separate file_format and ffmpeg_format properties with a single format property
+    )
+    
     output_format: EnumProperty(
         name="Format",
         description="Output file format",
@@ -105,7 +125,6 @@ class CameraideSettings(PropertyGroup):
         default='PNG'
     )
 
-    
     # PNG Settings
     png_color_depth: EnumProperty(
         name="Color Depth",
@@ -168,8 +187,7 @@ class CameraideSettings(PropertyGroup):
         default=False
     )
     
-    
-# FFMPEG Settings
+    # FFMPEG Settings
     ffmpeg_format: EnumProperty(
         name="Format",
         description="Video container format",
@@ -181,7 +199,6 @@ class CameraideSettings(PropertyGroup):
         default='MP4'
     )
     
-    # Hidden but needed properties for internal functionality
     ffmpeg_codec: EnumProperty(
         name="Codec",
         description="FFmpeg codec to use",
@@ -243,8 +260,6 @@ class CameraideSettings(PropertyGroup):
         default=False
     )
     
-    
-    # Audio settings (visible in UI)
     ffmpeg_audio_codec: EnumProperty(
         name="Audio",
         description="Audio codec settings",
@@ -262,7 +277,6 @@ class CameraideSettings(PropertyGroup):
         default=192,
         subtype='NONE'
     )
-    
     
     # Additional Settings
     overwrite_existing: BoolProperty(
@@ -285,13 +299,8 @@ class CameraideSettings(PropertyGroup):
         description="Make the alpha channel transparent for this camera",
         default=True
     )
-    ignore_markers: BoolProperty(
-        name="Ignore Markers",
-        description="Temporarily remove camera markers during rendering",
-        default=True
-    )
     
-      # UI Display Properties
+    # UI Display Properties
     show_resolution_settings: BoolProperty(
         name="Show Resolution Settings",
         description="Show or hide resolution settings",

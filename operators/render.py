@@ -2,6 +2,7 @@ import bpy
 import os
 from bpy.types import Operator
 import time
+from ..utils.marker_detection import get_all_marker_ranges
 
 class RenderCleanupManager:
     """Manages render settings and cleanup for Cameraide"""
@@ -24,7 +25,6 @@ class RenderCleanupManager:
             'frame_step': context.scene.frame_step,
             'file_format': context.scene.render.image_settings.file_format,
             'color_mode': context.scene.render.image_settings.color_mode,
-            # Store view transform settings
             'view_transform': context.scene.view_settings.view_transform,
             'look': context.scene.view_settings.look,
             'exposure': context.scene.view_settings.exposure,
@@ -32,7 +32,6 @@ class RenderCleanupManager:
             'use_curve_mapping': context.scene.view_settings.use_curve_mapping
         }
         
-        # Store format-specific settings if needed
         current_format = context.scene.render.image_settings.file_format
         if current_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
             cls._store_image_settings(context)
@@ -96,56 +95,50 @@ class RenderCleanupManager:
                     setattr(context.scene, key, value)
             cls._original_settings = None
     
-    @staticmethod
-    def _ensure_even_resolution(x, y, percentage=100):
-        """Ensures resolution dimensions are even numbers by rounding up, accounting for scale"""
-        # First apply the percentage scale
-        scaled_x = int((x * percentage) / 100)
-        scaled_y = int((y * percentage) / 100)
-        
-        # Then ensure even numbers
-        return (scaled_x + (scaled_x % 2), scaled_y + (scaled_y % 2))
-    
     @classmethod
-    def apply_camera_settings(cls, context, cam_obj):
-        """Apply camera settings to render"""
+    def apply_camera_settings(cls, context, cam_obj, frame_range=None):
+        """
+        Apply camera settings to render.
+        frame_range: Optional (start, end) tuple to override frame range
+        """
         from ..utils.callbacks import get_clean_camera_name
         
         settings = cam_obj.data.cameraide_settings
         cls._current_camera = cam_obj
         
-        # Calculate resolution based on format
+        # Calculate resolution
         res_x = settings.resolution_x
         res_y = settings.resolution_y
         percentage = settings.resolution_percentage
         
-        # Adjust resolution for video formats, including scaling
         if settings.output_format in {'MP4', 'MKV', 'MOV'}:
-            # Apply percentage scale first
             scaled_x = int((res_x * percentage) / 100)
             scaled_y = int((res_y * percentage) / 100)
-            # Then ensure even numbers
             res_x = scaled_x + (scaled_x % 2)
             res_y = scaled_y + (scaled_y % 2)
-            # Set percentage to 100 since we've already applied it
             context.scene.render.resolution_percentage = 100
         else:
-            # For non-video formats, use original values
             context.scene.render.resolution_percentage = percentage
             
-        # Basic settings
-        context.scene.frame_start = settings.frame_start
-        context.scene.frame_end = settings.frame_end
+        # Apply frame range (use override if provided, otherwise detect from mode)
+        if frame_range:
+            context.scene.frame_start = frame_range[0]
+            context.scene.frame_end = frame_range[1]
+        else:
+            from ..utils.marker_detection import get_effective_frame_range
+            start, end = get_effective_frame_range(cam_obj)
+            context.scene.frame_start = start
+            context.scene.frame_end = end
+        
         context.scene.frame_step = settings.frame_step
         context.scene.render.resolution_x = res_x
         context.scene.render.resolution_y = res_y
         context.scene.render.film_transparent = settings.film_transparent
         context.scene.render.use_stamp = settings.burn_metadata
 
-        # Construct full output path
+        # Construct output path
         base_path = bpy.path.abspath(settings.output_path)
         subfolder = settings.output_subfolder
-        # Use clean camera name when including camera name in filename
         if settings.include_camera_name:
             clean_name = get_clean_camera_name(cam_obj)
             filename = f"{clean_name}_{settings.output_filename}"
@@ -158,9 +151,8 @@ class RenderCleanupManager:
         # Format settings
         if settings.output_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
             context.scene.render.image_settings.file_format = settings.output_format
-            # Apply format-specific settings
             cls._apply_format_settings(context, settings)
-        else:  # Video formats
+        else:
             context.scene.render.image_settings.file_format = 'FFMPEG'
             cls._apply_video_settings(context, settings)
 
@@ -195,13 +187,11 @@ class RenderCleanupManager:
         }[settings.output_format]
         
         if settings.output_format == 'MOV':
-            # QuickTime with Animation codec
             context.scene.render.ffmpeg.codec = 'QTRLE'
             if hasattr(context.scene.render.ffmpeg, 'constant_rate_factor'):
                 context.scene.render.ffmpeg.constant_rate_factor = 'LOSSLESS'
             context.scene.render.ffmpeg.gopsize = 1
         else:
-            # MP4 and MKV with H.264
             context.scene.render.ffmpeg.codec = 'H264'
             if hasattr(context.scene.render.ffmpeg, 'constant_rate_factor'):
                 context.scene.render.ffmpeg.constant_rate_factor = 'HIGH'
@@ -210,7 +200,6 @@ class RenderCleanupManager:
             context.scene.render.ffmpeg.maxrate = 9000
             context.scene.render.ffmpeg.gopsize = 12
         
-        # Audio settings
         if settings.use_audio:
             context.scene.render.ffmpeg.audio_codec = 'MP3'
             context.scene.render.ffmpeg.audio_bitrate = 192
@@ -235,6 +224,8 @@ def remove_handlers():
     if render_cancel_handler in bpy.app.handlers.render_cancel:
         bpy.app.handlers.render_cancel.remove(render_cancel_handler)
 
+
+# === SNAPSHOT OPERATORS (from latest) ===
 class CAMERA_OT_render_snapshot_viewport(Operator):
     bl_idname = "camera.render_snapshot_viewport"
     bl_label = "Render Snapshot (Viewport)"
@@ -261,7 +252,6 @@ class CAMERA_OT_render_snapshot_viewport(Operator):
             context.scene.camera = cam_obj
             RenderCleanupManager.apply_camera_settings(context, cam_obj)
             
-            # Find active 3D viewport and render single frame
             for area in context.screen.areas:
                 if area.type == 'VIEW_3D':
                     override = context.copy()
@@ -301,7 +291,6 @@ class CAMERA_OT_render_snapshot_normal(Operator):
             context.scene.camera = cam_obj
             RenderCleanupManager.apply_camera_settings(context, cam_obj)
             
-            # Double-check resolution is even for video formats
             if settings.output_format in {'MP4', 'MKV', 'MOV'}:
                 res_x = context.scene.render.resolution_x
                 res_y = context.scene.render.resolution_y
@@ -309,7 +298,6 @@ class CAMERA_OT_render_snapshot_normal(Operator):
                     context.scene.render.resolution_x += (res_x % 2)
                     context.scene.render.resolution_y += (res_y % 2)
             
-            # Render single frame
             bpy.ops.render.render('INVOKE_DEFAULT', animation=False, write_still=True)
             
             return {'FINISHED'}
@@ -319,6 +307,8 @@ class CAMERA_OT_render_snapshot_normal(Operator):
             RenderCleanupManager.restore_settings(context)
             return {'CANCELLED'}
 
+
+# === PLAYBLAST OPERATORS ===
 class CAMERA_OT_render_selected_viewport(Operator):
     bl_idname = "camera.render_selected_viewport"
     bl_label = "Render Viewport"
@@ -337,23 +327,18 @@ class CAMERA_OT_render_selected_viewport(Operator):
             return {'CANCELLED'}
             
         try:
-            # Store settings and register handlers
             RenderCleanupManager.store_settings(context)
-            remove_handlers()  # Remove any existing handlers first
+            remove_handlers()
             bpy.app.handlers.render_complete.append(render_complete_handler)
             bpy.app.handlers.render_cancel.append(render_cancel_handler)
             
-            # Apply camera settings
             context.scene.camera = cam_obj
             RenderCleanupManager.apply_camera_settings(context, cam_obj)
             
-            # Find active 3D viewport
             for area in context.screen.areas:
                 if area.type == 'VIEW_3D':
-                    # Use context override to ensure the operator runs in the 3D viewport
                     override = context.copy()
                     override['area'] = area
-                    # Try the viewport render animation operator
                     bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, sequencer=False, write_still=False, view_context=True)
                     break
             
@@ -365,10 +350,11 @@ class CAMERA_OT_render_selected_viewport(Operator):
             remove_handlers()
             return {'CANCELLED'}
 
+
 class CAMERA_OT_render_selected_normal(Operator):
     bl_idname = "camera.render_selected_normal"
     bl_label = "Render Normal"
-    bl_description = "Render all Cameras with Normal render"
+    bl_description = "Render selected camera with normal render"
     
     @classmethod
     def poll(cls, context):
@@ -383,195 +369,130 @@ class CAMERA_OT_render_selected_normal(Operator):
             return {'CANCELLED'}
             
         try:
-            # Store settings and register handlers
             RenderCleanupManager.store_settings(context)
-            
-            # Debug print before applying settings
-            print(f"Before settings: {context.scene.render.resolution_x}x{context.scene.render.resolution_y}")
-            
-            # Apply camera settings
             context.scene.camera = cam_obj
             RenderCleanupManager.apply_camera_settings(context, cam_obj)
             
-            # Debug print after applying settings
-            print(f"After settings: {context.scene.render.resolution_x}x{context.scene.render.resolution_y}")
-            
-            # Double-check resolution is even for video formats
-            if settings.output_format in {'MP4', 'MKV', 'MOV'}:
-                res_x = context.scene.render.resolution_x
-                res_y = context.scene.render.resolution_y
-                if res_x % 2 or res_y % 2:
-                    context.scene.render.resolution_x += (res_x % 2)
-                    context.scene.render.resolution_y += (res_y % 2)
-                    print(f"Adjusted to even: {context.scene.render.resolution_x}x{context.scene.render.resolution_y}")
-            
-            # Start render
             bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
-            
-            # Debug print after render starts
-            print(f"After render start: {context.scene.render.resolution_x}x{context.scene.render.resolution_y}")
-            
             return {'FINISHED'}
             
         except Exception as e:
             self.report({'ERROR'}, f"Render failed: {str(e)}")
             RenderCleanupManager.restore_settings(context)
             return {'CANCELLED'}
-        
-class CameraRenderOperatorBase:
-    def cleanup_handlers(self):
-        """Remove all render handlers"""
-        try:
-            if self.render_post in bpy.app.handlers.render_post:
-                bpy.app.handlers.render_post.remove(self.render_post)
-            if self.frame_change_post in bpy.app.handlers.frame_change_post:
-                bpy.app.handlers.frame_change_post.remove(self.frame_change_post)
-            if self.render_cancel in bpy.app.handlers.render_cancel:
-                bpy.app.handlers.render_cancel.remove(self.render_cancel)
-            print("Successfully cleaned up render handlers")
-        except Exception as e:
-            print(f"Error during handler cleanup: {str(e)}")
 
 
-
+# === BATCH RENDER OPERATORS (with marker integration) ===
 class CAMERA_OT_render_all_viewport(Operator):
     bl_idname = "camera.render_all_viewport"
     bl_label = "Render All Cameras"
-    bl_description = "Render all Cameras with Viewport render"
+    bl_description = "Render all cameras with viewport render (timeline-ordered for marker mode)"
     
-    # Class variables
     _current_camera = None
     _current_index = -1
     _has_rendered = False
     _last_frame = -1
     _timer = None
-    _frame_zero_time = None  # Track when we first hit frame 0
+    _frame_zero_time = None
+    _render_queue = []
 
     @classmethod
     def reset_flags(cls):
         """Reset all operator flags"""
-        print("=== Resetting all viewport render flags ===")
+        print("=== Resetting viewport render flags ===")
         cls._current_camera = None
         cls._current_index = -1
         cls._has_rendered = False
         cls._last_frame = -1
         cls._frame_zero_time = None
+        cls._render_queue = []
         
-        # Clear frame change handlers
         handlers_to_remove = []
         for handler in bpy.app.handlers.frame_change_post:
             if hasattr(handler, 'has_rendered'):
-                print("Found handler with render flags")
                 handlers_to_remove.append(handler)
         
-        # Remove old handlers
         for handler in handlers_to_remove:
             bpy.app.handlers.frame_change_post.remove(handler)
-            print("Removed old handler")
     
     @classmethod
     def frame_change(cls, scene, depsgraph):
         """Frame change handler"""
-        import time
-        
         current_frame = scene.frame_current
         if not cls._current_camera:
             return
+        
+        if cls._current_index >= 0 and cls._current_index < len(cls._render_queue):
+            _, _, end_frame = cls._render_queue[cls._current_index]
             
-        settings = cls._current_camera.data.cameraide_settings
-        end_frame = settings.frame_end
+            if current_frame >= end_frame:
+                cls._has_rendered = True
         
-        print(f"=== Frame Change ===")
-        print(f"Current Frame: {current_frame}")
-        print(f"End Frame: {end_frame}")
-        print(f"Last Frame: {cls._last_frame}")
-        
-        # Track if we've reached the end frame
-        if current_frame >= end_frame:
-            cls._has_rendered = True
-            print("Reached end frame - setting has_rendered to True")
-        
-        # Track when we first hit frame 0
         if current_frame == 0:
             if cls._frame_zero_time is None:
                 cls._frame_zero_time = time.time()
-                print(f"First time at frame 0 - setting timestamp: {cls._frame_zero_time}")
         else:
             cls._frame_zero_time = None
             
         cls._last_frame = current_frame
     
     def check_render_complete(self, context):
-        """Check if current camera render is complete"""
-        import time
-        
+        """Check if current render job is complete"""
         if not self._current_camera:
-            print("No current camera")
             return False
             
-        settings = self._current_camera.data.cameraide_settings
         current_frame = context.scene.frame_current
-        end_frame = settings.frame_end
         
-        print(f"=== Checking Completion ===")
-        print(f"Current frame: {current_frame}")
-        print(f"Has rendered: {self._has_rendered}")
-        print(f"Frame zero time: {self._frame_zero_time}")
-        
-        # Check both conditions:
-        # 1. We've reached the end frame
-        # 2. We've been at frame 0 for at least 1 seconds
         if self._has_rendered and current_frame == 0 and self._frame_zero_time:
             time_at_zero = time.time() - self._frame_zero_time
-            print(f"Time at frame 0: {time_at_zero} seconds")
-            
             if time_at_zero >= 1:
-                print("Render complete detected!")
                 return True
-            
         return False
         
-    def start_next_camera(self, context):
-        """Setup and start render for next camera"""
-        print("\n=== Starting Next Camera ===")
+    def start_next_render(self, context):
+        """Setup and start next render job"""
+        print("\n=== Starting Next Render Job ===")
         self.__class__._current_index += 1
-        self.__class__._current_camera = self.cameras[self._current_index]
-        print(f"Camera {self._current_index + 1}/{len(self.cameras)}: {self._current_camera.name}")
+        cam_obj, start, end = self._render_queue[self._current_index]
+        self.__class__._current_camera = cam_obj
         
-        # Reset render state
-        print("Resetting render flags")
+        print(f"Job {self._current_index + 1}/{len(self._render_queue)}: {cam_obj.name} [{start}-{end}]")
+        
         self.__class__._has_rendered = False
         self.__class__._last_frame = -1
         
-        # Setup camera and render settings
-        context.scene.camera = self._current_camera
+        context.scene.camera = cam_obj
         RenderCleanupManager.store_settings(context)
-        RenderCleanupManager.apply_camera_settings(context, self._current_camera)
+        RenderCleanupManager.apply_camera_settings(context, cam_obj, frame_range=(start, end))
         
-        # Start render
         bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
                             sequencer=False, write_still=False, view_context=True)
     
     def execute(self, context):
-        print("\n=== Starting Viewport Render Operation ===")
+        print("\n=== Starting Batch Viewport Render ===")
         
-        # Get cameras
-        self.cameras = [obj for obj in context.scene.objects 
-                       if obj.type == 'CAMERA' 
-                       and obj.data.cameraide_settings.use_custom_settings]
+        cameras = [obj for obj in context.scene.objects 
+                  if obj.type == 'CAMERA' 
+                  and obj.data.cameraide_settings.use_custom_settings]
         
-        if not self.cameras:
+        if not cameras:
             self.report({'WARNING'}, "No cameras with settings enabled")
             return {'CANCELLED'}
         
-        # Reset all operator properties
+        # Build render queue based on frame range mode
+        self._render_queue = []
+        for cam_obj in cameras:
+            ranges = get_all_marker_ranges(cam_obj)
+            for start, end in ranges:
+                self._render_queue.append((cam_obj, start, end))
+        
+        print(f"Built render queue: {len(self._render_queue)} jobs")
+        
         self.__class__.reset_flags()
         
-        # Add fresh frame change handler
         if self.__class__.frame_change not in bpy.app.handlers.frame_change_post:
             bpy.app.handlers.frame_change_post.append(self.__class__.frame_change)
         
-        # Start timer and modal
         wm = context.window_manager
         self._timer = wm.event_timer_add(0.5, window=context.window)
         wm.modal_handler_add(self)
@@ -592,103 +513,89 @@ class CAMERA_OT_render_all_viewport(Operator):
     
     def modal(self, context, event):
         if event.type == 'TIMER':
-            print("\n=== Modal Timer Tick ===")
-            print(f"Current Index: {self._current_index}")
-            print(f"Last Frame: {self._last_frame}")
-            print(f"Current Frame: {context.scene.frame_current}")
-            
-            if self._current_index == -1:  # First run
-                print("First run - starting first camera")
-                self.start_next_camera(context)
+            if self._current_index == -1:
+                self.start_next_render(context)
             elif self.check_render_complete(context):
-                print("Render complete detected!")
-                if self._current_index >= len(self.cameras) - 1:
-                    print("All cameras completed")
+                if self._current_index >= len(self._render_queue) - 1:
                     self.cleanup(context)
                     return {'FINISHED'}
-                print("Starting next camera")
-                self.start_next_camera(context)
+                self.start_next_render(context)
         
         return {'PASS_THROUGH'}
 
     def cancel(self, context):
-        print("Operator cancelled")
         self.cleanup(context)
         return {'CANCELLED'}
-    
+
+
 class CAMERA_OT_render_all_normal(Operator):
     bl_idname = "camera.render_all_normal"
     bl_label = "Render All Cameras (Normal)"
-    bl_description = "Render all Cameras with Normal render"
+    bl_description = "Render all cameras with normal render (timeline-ordered for marker mode)"
     
-    _cameras = None
+    _render_queue = []
     _current_index = -1
     _render_complete = False
     
     @classmethod
     def poll(cls, context):
-        """Ensure at least one camera with Cameraide settings exists"""
         return any(
             obj.type == 'CAMERA' and obj.data.cameraide_settings.use_custom_settings 
             for obj in context.scene.objects
         )
     
     def execute(self, context):
-        # Collect all cameras with Cameraide settings
-        self._cameras = [
+        cameras = [
             obj for obj in context.scene.objects 
             if obj.type == 'CAMERA' and obj.data.cameraide_settings.use_custom_settings
         ]
         
-        if not self._cameras:
-            self.report({'WARNING'}, "No cameras with Cameraide settings found")
+        if not cameras:
+            self.report({'WARNING'}, "No cameras with settings found")
             return {'CANCELLED'}
         
-        # Reset tracking variables
+        # Build render queue based on frame range mode
+        self._render_queue = []
+        for cam_obj in cameras:
+            ranges = get_all_marker_ranges(cam_obj)
+            for start, end in ranges:
+                self._render_queue.append((cam_obj, start, end))
+        
+        print(f"Normal render queue: {len(self._render_queue)} jobs")
+        
         self._current_index = -1
         self._render_complete = False
         
-        # Add render complete and cancel handlers
         bpy.app.handlers.render_complete.append(self.render_complete_handler)
         bpy.app.handlers.render_cancel.append(self.render_cancel_handler)
         
-        # Start the first camera render
-        self.render_next_camera(context)
+        self.render_next_job(context)
         
         return {'RUNNING_MODAL'}
     
-    def render_next_camera(self, context):
-        """Prepare and start render for the next camera"""
+    def render_next_job(self, context):
+        """Prepare and start next render job"""
         self._current_index += 1
         
-        # Check if we've rendered all cameras
-        if self._current_index >= len(self._cameras):
+        if self._current_index >= len(self._render_queue):
             self.finish_rendering(context)
             return
         
-        # Get current camera
-        current_camera = self._cameras[self._current_index]
+        cam_obj, start, end = self._render_queue[self._current_index]
+        context.scene.camera = cam_obj
         
-        # Set scene camera
-        context.scene.camera = current_camera
-        
-        # Store and apply camera-specific settings
         RenderCleanupManager.store_settings(context)
-        RenderCleanupManager.apply_camera_settings(context, current_camera)
+        RenderCleanupManager.apply_camera_settings(context, cam_obj, frame_range=(start, end))
         
-        # Print debug information
-        print(f"Rendering camera {self._current_index + 1}/{len(self._cameras)}: {current_camera.name}")
+        print(f"Rendering job {self._current_index + 1}/{len(self._render_queue)}: {cam_obj.name} [{start}-{end}]")
         
-        # Start render
         bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
     
     def render_complete_handler(self, scene, depsgraph):
         """Handler called when a render is complete"""
-        if self._current_index < len(self._cameras) - 1:
-            # Render next camera
-            self.render_next_camera(bpy.context)
+        if self._current_index < len(self._render_queue) - 1:
+            self.render_next_job(bpy.context)
         else:
-            # All cameras rendered
             self._render_complete = True
     
     def render_cancel_handler(self, scene, depsgraph):
@@ -696,163 +603,33 @@ class CAMERA_OT_render_all_normal(Operator):
         self.finish_rendering(bpy.context)
     
     def finish_rendering(self, context):
-        """Cleanup after rendering all cameras"""
-        # Remove handlers
+        """Cleanup after rendering"""
         if self.render_complete_handler in bpy.app.handlers.render_complete:
             bpy.app.handlers.render_complete.remove(self.render_complete_handler)
         if self.render_cancel_handler in bpy.app.handlers.render_cancel:
             bpy.app.handlers.render_cancel.remove(self.render_cancel_handler)
         
-        # Restore original settings
         RenderCleanupManager.restore_settings(context)
         
-        # Reset tracking variables
-        self._cameras = None
+        self._render_queue = []
         self._current_index = -1
         
-        # Print completion message
-        print("Batch rendering of all cameras complete")
+        print("Batch rendering complete")
     
     def modal(self, context, event):
-        """Modal operator to handle rendering process"""
         if self._render_complete:
             return {'FINISHED'}
         return {'PASS_THROUGH'}
     
     def cancel(self, context):
-        """Handle operator cancellation"""
         self.finish_rendering(context)
         return {'CANCELLED'}
-    bl_idname = "camera.render_all_normal"
-    bl_label = "Render All Cameras (Normal)"
-    bl_description = "Render all Cameras with Normal render"
-    
-    is_rendering: bpy.props.BoolProperty(default=False)
-    _timer = None
-    _last_frame = None
-    
-    def render_post(self, scene, depsgraph):
-        """Handler for render post"""
-        print("Render post callback triggered")
-        self._last_frame = scene.frame_current
-        
-        # Check if we've reached the end frame
-        settings = scene.camera.data.cameraide_settings
-        if scene.frame_current >= settings.frame_end:
-            print(f"Render completed at frame {scene.frame_current}")
-            self.is_rendering = False
-            self.cleanup_handlers()
-    
-    def render_cancel(self, scene, depsgraph):
-        """Handler for render cancellation"""
-        print("Render cancel callback triggered")
-        self.is_rendering = False
-        self.cleanup_handlers()
-    
-    def frame_change_post(self, scene, depsgraph):
-        """Handler for frame change"""
-        if not self.is_rendering:
-            return
-            
-        settings = scene.camera.data.cameraide_settings
-        if scene.frame_current >= settings.frame_end:
-            print(f"Detected end frame {scene.frame_current}, completing render")
-            self.is_rendering = False
-            self.cleanup_handlers()
-    
-    def prepare_next_camera(self, context):
-        """Prepare the next camera for rendering"""
-        self.current_index += 1
-        camera = self.cameras[self.current_index]
-        print(f"\nPreparing camera {self.current_index + 1}/{len(self.cameras)}: {camera.name}")
-        
-        context.scene.camera = camera
-        for area in context.screen.areas:
-            if area.type == 'VIEW_3D':
-                area.spaces[0].region_3d.view_perspective = 'CAMERA'
-        
-        RenderCleanupManager.store_settings(context)
-        RenderCleanupManager.apply_camera_settings(context, camera)
-        
-        return camera
-    
-    def render_complete(self, scene, depsgraph):
-        """Handler for render completion"""
-        print("Render complete callback triggered")
-        self.is_rendering = False
-        
-        # If this was the last camera, clean up everything
-        if self.current_index >= len(self.cameras) - 1:
-            print("Final camera complete, ending modal")
-            self.cleanup_handlers()
-            if self._timer:
-                bpy.context.window_manager.event_timer_remove(self._timer)
-                self._timer = None
-            RenderCleanupManager.restore_settings(bpy.context)
-            return
 
-    def modal(self, context, event):
-        if event.type == 'TIMER':
-            if self._timer is None:  # Timer was removed, we're done
-                return {'FINISHED'}
-                
-            if not self.is_rendering:
-                if self.current_index < len(self.cameras) - 1:
-                    camera = self.prepare_next_camera(context)
-                    print(f"Starting render for camera: {camera.name}")
-                    self.is_rendering = True
-                    
-                    # Add handlers including render_complete
-                    bpy.app.handlers.render_complete.append(self.render_complete)
-                    bpy.app.handlers.render_cancel.append(self.render_cancel)
-                    
-                    bpy.ops.render.render('INVOKE_DEFAULT', animation=True)  # Simplified parameters
-                else:
-                    return {'FINISHED'}
-        
-        return {'PASS_THROUGH'}
 
-    def cleanup_handlers(self):
-        """Remove all render handlers"""
-        if self.render_complete in bpy.app.handlers.render_complete:
-            bpy.app.handlers.render_complete.remove(self.render_complete)
-        if self.render_cancel in bpy.app.handlers.render_cancel:
-            bpy.app.handlers.render_cancel.remove(self.render_cancel)
-    
-    def execute(self, context):
-        try:
-            self.cameras = [obj for obj in context.scene.objects 
-                          if obj.type == 'CAMERA' 
-                          and obj.data.cameraide_settings.use_custom_settings]
-            
-            if not self.cameras:
-                self.report({'WARNING'}, "No cameras with Cameraide settings enabled")
-                return {'CANCELLED'}
-            
-            print(f"\nFound {len(self.cameras)} cameras to render")
-            
-            self.current_index = -1
-            self.is_rendering = False
-            self._last_frame = None
-            
-            # Add timer for modal
-            wm = context.window_manager
-            self._timer = wm.event_timer_add(3, window=context.window)
-            wm.modal_handler_add(self)
-            
-            return {'RUNNING_MODAL'}
-            
-        except Exception as e:
-            self.report({'ERROR'}, f"Failed to start batch render: {str(e)}")
-            print(f"Error: {str(e)}")
-            return {'CANCELLED'}
-    
-    def cancel(self, context):
-        if self._timer:
-            context.window_manager.event_timer_remove(self._timer)
-        self.cleanup_handlers()
-        RenderCleanupManager.restore_settings(context)
-        return {'CANCELLED'}
+class CameraRenderOperatorBase:
+    """Base class for render operators (for backwards compatibility)"""
+    pass
+
 
 def register():
     bpy.utils.register_class(CAMERA_OT_render_snapshot_viewport)
