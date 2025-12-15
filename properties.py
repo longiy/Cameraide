@@ -9,7 +9,6 @@ from .utils.callbacks import (
 
 def update_custom_settings(self, context):
     """Callback when use_custom_settings is toggled"""
-    # Initialize frame_range_mode if it doesn't exist
     if self.use_custom_settings and not hasattr(self, '_frame_range_mode'):
         self.frame_range_mode = 'PER_CAMERA'
 
@@ -44,7 +43,7 @@ class CameraideSettings(PropertyGroup):
         subtype='PERCENTAGE'
     )
     
-    # Frame Range Mode - REFACTORED (replaces ignore_markers)
+    # Frame Range Mode
     frame_range_mode: EnumProperty(
         name="Frame Range Mode",
         description="Choose how frame ranges are determined for this camera",
@@ -118,9 +117,9 @@ class CameraideSettings(PropertyGroup):
             ('PNG', "PNG", "PNG Format\n• Color Depth: 8/16-bit\n• Lossless compression\n• Alpha support"),
             ('JPEG', "JPEG", "JPEG Format\n• 8-bit color depth\n• Quality: 90%\n• Lossy compression"),
             ('OPEN_EXR', "EXR", "OpenEXR Format\n• Color Depth: 16/32-bit float\n• Multiple compression options\n• HDR support\n• Alpha support"),
-            ('MP4', "MP4", "MP4 Video\n• H.264 codec\n• High quality preset\n• Bitrate: 6000 kb/s\n• GOP size: 12"),
-            ('MKV', "MKV", "Matroska Video\n• H.264 codec\n• High quality preset\n• Bitrate: 6000 kb/s\n• GOP size: 12"),
-            ('MOV', "MOV", "QuickTime\n• Animation codec\n• Lossless quality\n• No compression\n• Large file size"),
+            ('H264_MP4', "MP4 H264", "MP4 with H.264\n• Standard MP4 container\n• H.264 codec\n• Universal compatibility"),
+            ('H264_MKV', "MKV H264", "MKV with H.264\n• Matroska container\n• H.264 codec\n• Open format"),
+            ('PRORES_MOV', "MOV ProRes", "MOV with ProRes 4444\n• QuickTime container\n• ProRes 4444 codec\n• Professional editing\n• Alpha support"),
         ],
         default='PNG'
     )
@@ -187,65 +186,30 @@ class CameraideSettings(PropertyGroup):
         default=False
     )
     
-    # FFMPEG Settings
-    ffmpeg_format: EnumProperty(
-        name="Format",
-        description="Video container format",
+    # Video Quality Settings
+    video_quality: EnumProperty(
+        name="Quality",
+        description="Video encoding quality preset",
         items=[
-            ('MOV', "QuickTime (.mov)", "Export as QuickTime with Animation codec (lossless)"),
-            ('MP4', "MPEG-4 (.mp4)", "Export as MP4 with H.264 codec (high quality)"),
-            ('MKV', "Matroska (.mkv)", "Export as Matroska with H.264 codec (high quality)"),
-        ],
-        default='MP4'
-    )
-    
-    ffmpeg_codec: EnumProperty(
-        name="Codec",
-        description="FFmpeg codec to use",
-        items=[
-            ('H264', "H.264", "H.264/AVC codec"),
-            ('QTRLE', "QuickTime Animation", "QuickTime Animation codec"),
-        ],
-        default='H264'
-    )
-    ffmpeg_constant_rate_factor: EnumProperty(
-        name="Output Quality",
-        description="Constant Rate Factor (CRF) - lower values for better quality",
-        items=[
-            ('NONE', 'Constant Bitrate', 'Specify bitrate instead of quality'),
-            ('LOSSLESS', 'Lossless', 'Use lossless encoding'),
+            ('LOSSLESS', 'Lossless', 'Lossless encoding (huge files)'),
             ('PERC_LOSSLESS', 'Perceptually Lossless', 'High quality, nearly lossless'),
-            ('HIGH', 'High Quality', 'High quality'),
+            ('HIGH', 'High Quality', 'High quality (recommended)'),
             ('MEDIUM', 'Medium Quality', 'Medium quality'),
             ('LOW', 'Low Quality', 'Low quality'),
         ],
         default='HIGH'
     )
-    ffmpeg_video_bitrate: IntProperty(
+    
+    video_bitrate: IntProperty(
         name="Bitrate",
-        description="Video bitrate (kb/s)",
+        description="Video bitrate (kb/s) - used when quality is set to custom",
         min=1,
         max=100000,
         default=6000,
         subtype='NONE'
     )
-    ffmpeg_minrate: IntProperty(
-        name="Min Rate",
-        description="Rate control: min rate (kb/s)",
-        min=0,
-        max=100000,
-        default=0,
-        subtype='NONE'
-    )
-    ffmpeg_maxrate: IntProperty(
-        name="Max Rate",
-        description="Rate control: max rate (kb/s)",
-        min=1,
-        max=100000,
-        default=9000,
-        subtype='NONE'
-    )
-    ffmpeg_gopsize: IntProperty(
+    
+    video_gopsize: IntProperty(
         name="GOP Size",
         description="Distance between keyframes",
         min=0,
@@ -254,22 +218,25 @@ class CameraideSettings(PropertyGroup):
         subtype='NONE'
     )
     
+    # Audio Settings
     use_audio: BoolProperty(
         name="Include Audio",
-        description="Include MP3 audio in the rendered video",
+        description="Include audio in the rendered video",
         default=False
     )
     
-    ffmpeg_audio_codec: EnumProperty(
-        name="Audio",
+    audio_codec: EnumProperty(
+        name="Audio Codec",
         description="Audio codec settings",
         items=[
             ('NONE', "No Audio", "Don't include audio"),
-            ('MP3', "MP3", "Include MP3 audio"),
+            ('AAC', "AAC", "AAC audio codec (recommended)"),
+            ('MP3', "MP3", "MP3 audio codec"),
         ],
         default='NONE'
     )
-    ffmpeg_audio_bitrate: IntProperty(
+    
+    audio_bitrate: IntProperty(
         name="Audio Bitrate",
         description="Audio bitrate (kb/s)",
         min=32,

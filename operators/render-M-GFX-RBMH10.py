@@ -13,40 +13,35 @@ class RenderCleanupManager:
     @classmethod
     def store_settings(cls, context):
         """Store original render settings"""
-        import bpy
-        scene = bpy.context.scene
-        
         cls._original_settings = {
-            'frame_start': scene.frame_start,
-            'frame_end': scene.frame_end,
-            'filepath': scene.render.filepath,
-            'resolution_x': scene.render.resolution_x,
-            'resolution_y': scene.render.resolution_y,
-            'resolution_percentage': scene.render.resolution_percentage,
-            'film_transparent': scene.render.film_transparent,
-            'use_stamp': scene.render.use_stamp,
-            'frame_step': scene.frame_step,
-            'file_format': scene.render.image_settings.file_format,
-            'media_type': scene.render.image_settings.media_type,
-            'color_mode': scene.render.image_settings.color_mode,
-            'view_transform': scene.view_settings.view_transform,
-            'look': scene.view_settings.look,
-            'exposure': scene.view_settings.exposure,
-            'gamma': scene.view_settings.gamma,
-            'use_curve_mapping': scene.view_settings.use_curve_mapping
+            'frame_start': context.scene.frame_start,
+            'frame_end': context.scene.frame_end,
+            'filepath': context.scene.render.filepath,
+            'resolution_x': context.scene.render.resolution_x,
+            'resolution_y': context.scene.render.resolution_y,
+            'resolution_percentage': context.scene.render.resolution_percentage,
+            'film_transparent': context.scene.render.film_transparent,
+            'use_stamp': context.scene.render.use_stamp,
+            'frame_step': context.scene.frame_step,
+            'file_format': context.scene.render.image_settings.file_format,
+            'color_mode': context.scene.render.image_settings.color_mode,
+            'view_transform': context.scene.view_settings.view_transform,
+            'look': context.scene.view_settings.look,
+            'exposure': context.scene.view_settings.exposure,
+            'gamma': context.scene.view_settings.gamma,
+            'use_curve_mapping': context.scene.view_settings.use_curve_mapping
         }
         
-        current_format = scene.render.image_settings.file_format
+        current_format = context.scene.render.image_settings.file_format
         if current_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
             cls._store_image_settings(context)
-        elif current_format == 'FFMPEG':
+        elif current_format in {'FFMPEG', 'MPEG4', 'MKV', 'QUICKTIME'}:
             cls._store_video_settings(context)
 
     @classmethod
     def _store_image_settings(cls, context):
         """Store image format specific settings"""
-        import bpy
-        image_settings = bpy.context.scene.render.image_settings
+        image_settings = context.scene.render.image_settings
         format_settings = {}
         
         if hasattr(image_settings, 'color_depth'):
@@ -65,12 +60,9 @@ class RenderCleanupManager:
     @classmethod
     def _store_video_settings(cls, context):
         """Store video format specific settings"""
-        import bpy
-        ffmpeg = bpy.context.scene.render.ffmpeg
+        ffmpeg = context.scene.render.ffmpeg
         cls._original_settings.update({
-            'ffmpeg_format': ffmpeg.format,
             'ffmpeg_codec': ffmpeg.codec,
-            'ffmpeg_constant_rate_factor': getattr(ffmpeg, 'constant_rate_factor', None),
             'ffmpeg_video_bitrate': ffmpeg.video_bitrate,
             'ffmpeg_minrate': ffmpeg.minrate,
             'ffmpeg_maxrate': ffmpeg.maxrate,
@@ -82,71 +74,75 @@ class RenderCleanupManager:
     @classmethod
     def restore_settings(cls, context):
         """Restore original render settings"""
-        import bpy
-        scene = bpy.context.scene
-        
         if cls._original_settings:
+            # Get available formats once
+            available_formats = [item.identifier for item in context.scene.render.image_settings.bl_rna.properties['file_format'].enum_items]
+            
             for key, value in cls._original_settings.items():
                 if value is None:
                     continue
+                
+                # Skip invalid file formats
+                if key == 'file_format' and value not in available_formats:
+                    print(f"Skipping restore of unsupported format: {value}")
+                    continue
                     
                 if key.startswith('ffmpeg_'):
-                    if scene.render.image_settings.file_format == 'FFMPEG':
-                        clean_key = key.replace('ffmpeg_', '')
-                        if hasattr(scene.render.ffmpeg, clean_key):
-                            setattr(scene.render.ffmpeg, clean_key, value)
+                    clean_key = key.replace('ffmpeg_', '')
+                    if hasattr(context.scene.render.ffmpeg, clean_key):
+                        setattr(context.scene.render.ffmpeg, clean_key, value)
                 elif key in ['view_transform', 'look', 'exposure', 'gamma', 'use_curve_mapping']:
-                    setattr(scene.view_settings, key, value)
-                elif hasattr(scene.render, key):
-                    setattr(scene.render, key, value)
-                elif hasattr(scene.render.image_settings, key):
-                    setattr(scene.render.image_settings, key, value)
-                elif hasattr(scene, key):
-                    setattr(scene, key, value)
+                    setattr(context.scene.view_settings, key, value)
+                elif hasattr(context.scene.render, key):
+                    setattr(context.scene.render, key, value)
+                elif hasattr(context.scene.render.image_settings, key):
+                    setattr(context.scene.render.image_settings, key, value)
+                elif hasattr(context.scene, key):
+                    setattr(context.scene, key, value)
             cls._original_settings = None
     
     @classmethod
     def apply_camera_settings(cls, context, cam_obj, frame_range=None):
-        """Apply camera settings to render"""
+        """
+        Apply camera settings to render.
+        frame_range: Optional (start, end) tuple to override frame range
+        """
         from ..utils.callbacks import get_clean_camera_name
-        import bpy
-        scene = bpy.context.scene
         
         settings = cam_obj.data.cameraide_settings
         cls._current_camera = cam_obj
         
-        # Resolution
+        # Calculate resolution
         res_x = settings.resolution_x
         res_y = settings.resolution_y
         percentage = settings.resolution_percentage
         
-        is_video = settings.output_format in {'H264_MP4', 'H264_MKV', 'PRORES_MOV'}
-        if is_video:
+        if settings.output_format in {'MP4', 'MKV', 'MOV'}:
             scaled_x = int((res_x * percentage) / 100)
             scaled_y = int((res_y * percentage) / 100)
             res_x = scaled_x + (scaled_x % 2)
             res_y = scaled_y + (scaled_y % 2)
-            scene.render.resolution_percentage = 100
+            context.scene.render.resolution_percentage = 100
         else:
-            scene.render.resolution_percentage = percentage
+            context.scene.render.resolution_percentage = percentage
             
-        # Frame range
+        # Apply frame range (use override if provided, otherwise detect from mode)
         if frame_range:
-            scene.frame_start = frame_range[0]
-            scene.frame_end = frame_range[1]
+            context.scene.frame_start = frame_range[0]
+            context.scene.frame_end = frame_range[1]
         else:
             from ..utils.marker_detection import get_effective_frame_range
             start, end = get_effective_frame_range(cam_obj)
-            scene.frame_start = start
-            scene.frame_end = end
+            context.scene.frame_start = start
+            context.scene.frame_end = end
         
-        scene.frame_step = settings.frame_step
-        scene.render.resolution_x = res_x
-        scene.render.resolution_y = res_y
-        scene.render.film_transparent = settings.film_transparent
-        scene.render.use_stamp = settings.burn_metadata
+        context.scene.frame_step = settings.frame_step
+        context.scene.render.resolution_x = res_x
+        context.scene.render.resolution_y = res_y
+        context.scene.render.film_transparent = settings.film_transparent
+        context.scene.render.use_stamp = settings.burn_metadata
 
-        # Output path
+        # Construct output path
         base_path = bpy.path.abspath(settings.output_path)
         subfolder = settings.output_subfolder
         if settings.include_camera_name:
@@ -156,12 +152,11 @@ class RenderCleanupManager:
             filename = settings.output_filename
             
         filepath = os.path.join(base_path, subfolder, filename)
-        scene.render.filepath = filepath
+        context.scene.render.filepath = filepath
         
         # Format settings
         if settings.output_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
-            scene.render.image_settings.media_type = 'IMAGE'
-            scene.render.image_settings.file_format = settings.output_format
+            context.scene.render.image_settings.file_format = settings.output_format
             cls._apply_format_settings(context, settings)
         else:
             cls._apply_video_settings(context, settings)
@@ -169,8 +164,7 @@ class RenderCleanupManager:
     @classmethod
     def _apply_format_settings(cls, context, settings):
         """Apply format-specific settings"""
-        import bpy
-        image_settings = bpy.context.scene.render.image_settings
+        image_settings = context.scene.render.image_settings
         
         if settings.output_format == 'PNG':
             image_settings.color_mode = 'RGBA'
@@ -191,49 +185,36 @@ class RenderCleanupManager:
     @classmethod
     def _apply_video_settings(cls, context, settings):
         """Apply video-specific settings"""
-        import bpy
-        scene = bpy.context.scene
+        # CRITICAL: image_settings.file_format must be 'FFMPEG' for video
+        # This should already be set in apply_camera_settings, but ensure it here
+        context.scene.render.image_settings.file_format = 'FFMPEG'
         
-        # CRITICAL: Set media_type to VIDEO first!
-        scene.render.image_settings.media_type = 'VIDEO'
+        # Now configure the FFMPEG container format
+        context.scene.render.ffmpeg.format = {
+            'MP4': 'MPEG4',
+            'MKV': 'MKV',
+            'MOV': 'QUICKTIME'
+        }[settings.output_format]
         
-        # Now we can set file_format to FFMPEG
-        scene.render.image_settings.file_format = 'FFMPEG'
-        
-        ffmpeg = scene.render.ffmpeg
-        
-        format_map = {
-            'H264_MP4': 'MPEG4',
-            'H264_MKV': 'MKV',
-            'PRORES_MOV': 'QUICKTIME'
-        }
-        
-        codec_map = {
-            'H264_MP4': 'H264',
-            'H264_MKV': 'H264',
-            'PRORES_MOV': 'PRORES'
-        }
-        
-        ffmpeg.format = format_map[settings.output_format]
-        ffmpeg.codec = codec_map[settings.output_format]
-        
-        if settings.output_format == 'PRORES_MOV':
-            if hasattr(ffmpeg, 'constant_rate_factor'):
-                ffmpeg.constant_rate_factor = 'PERC_LOSSLESS'
-            ffmpeg.gopsize = 1
+        if settings.output_format == 'MOV':
+            context.scene.render.ffmpeg.codec = 'QTRLE'
+            if hasattr(context.scene.render.ffmpeg, 'constant_rate_factor'):
+                context.scene.render.ffmpeg.constant_rate_factor = 'LOSSLESS'
+            context.scene.render.ffmpeg.gopsize = 1
         else:
-            if hasattr(ffmpeg, 'constant_rate_factor'):
-                ffmpeg.constant_rate_factor = settings.video_quality
-            ffmpeg.video_bitrate = settings.video_bitrate
-            ffmpeg.minrate = 0
-            ffmpeg.maxrate = settings.video_bitrate * 2
-            ffmpeg.gopsize = settings.video_gopsize
+            context.scene.render.ffmpeg.codec = 'H264'
+            if hasattr(context.scene.render.ffmpeg, 'constant_rate_factor'):
+                context.scene.render.ffmpeg.constant_rate_factor = 'HIGH'
+            context.scene.render.ffmpeg.video_bitrate = 6000
+            context.scene.render.ffmpeg.minrate = 0
+            context.scene.render.ffmpeg.maxrate = 9000
+            context.scene.render.ffmpeg.gopsize = 12
         
-        if settings.use_audio and settings.audio_codec != 'NONE':
-            ffmpeg.audio_codec = settings.audio_codec
-            ffmpeg.audio_bitrate = settings.audio_bitrate
+        if settings.use_audio:
+            context.scene.render.ffmpeg.audio_codec = 'MP3'
+            context.scene.render.ffmpeg.audio_bitrate = 192
         else:
-            ffmpeg.audio_codec = 'NONE'
+            context.scene.render.ffmpeg.audio_codec = 'NONE'
 
 
 def render_complete_handler(scene, depsgraph):
@@ -319,6 +300,13 @@ class CAMERA_OT_render_snapshot_normal(Operator):
             
             context.scene.camera = cam_obj
             RenderCleanupManager.apply_camera_settings(context, cam_obj)
+            
+            if settings.output_format in {'MP4', 'MKV', 'MOV'}:
+                res_x = context.scene.render.resolution_x
+                res_y = context.scene.render.resolution_y
+                if res_x % 2 or res_y % 2:
+                    context.scene.render.resolution_x += (res_x % 2)
+                    context.scene.render.resolution_y += (res_y % 2)
             
             bpy.ops.render.render('INVOKE_DEFAULT', animation=False, write_still=True)
             
@@ -408,7 +396,7 @@ class CAMERA_OT_render_selected_normal(Operator):
 class CAMERA_OT_render_all_viewport(Operator):
     bl_idname = "camera.render_all_viewport"
     bl_label = "Render All Cameras"
-    bl_description = "Render all cameras with viewport render"
+    bl_description = "Render all cameras with viewport render (timeline-ordered for marker mode)"
     
     _current_camera = None
     _current_index = -1
@@ -421,6 +409,7 @@ class CAMERA_OT_render_all_viewport(Operator):
     @classmethod
     def reset_flags(cls):
         """Reset all operator flags"""
+        print("=== Resetting viewport render flags ===")
         cls._current_camera = None
         cls._current_index = -1
         cls._has_rendered = False
@@ -472,9 +461,12 @@ class CAMERA_OT_render_all_viewport(Operator):
         
     def start_next_render(self, context):
         """Setup and start next render job"""
+        print("\n=== Starting Next Render Job ===")
         self.__class__._current_index += 1
         cam_obj, start, end = self._render_queue[self._current_index]
         self.__class__._current_camera = cam_obj
+        
+        print(f"Job {self._current_index + 1}/{len(self._render_queue)}: {cam_obj.name} [{start}-{end}]")
         
         self.__class__._has_rendered = False
         self.__class__._last_frame = -1
@@ -487,6 +479,8 @@ class CAMERA_OT_render_all_viewport(Operator):
                             sequencer=False, write_still=False, view_context=True)
     
     def execute(self, context):
+        print("\n=== Starting Batch Viewport Render ===")
+        
         cameras = [obj for obj in context.scene.objects 
                   if obj.type == 'CAMERA' 
                   and obj.data.cameraide_settings.use_custom_settings]
@@ -495,11 +489,14 @@ class CAMERA_OT_render_all_viewport(Operator):
             self.report({'WARNING'}, "No cameras with settings enabled")
             return {'CANCELLED'}
         
+        # Build render queue based on frame range mode
         self._render_queue = []
         for cam_obj in cameras:
             ranges = get_all_marker_ranges(cam_obj)
             for start, end in ranges:
                 self._render_queue.append((cam_obj, start, end))
+        
+        print(f"Built render queue: {len(self._render_queue)} jobs")
         
         self.__class__.reset_flags()
         
@@ -514,6 +511,7 @@ class CAMERA_OT_render_all_viewport(Operator):
     
     def cleanup(self, context):
         """Clean up timer and restore settings"""
+        print("\n=== Cleaning Up ===")
         if self._timer:
             context.window_manager.event_timer_remove(self._timer)
         
@@ -543,7 +541,7 @@ class CAMERA_OT_render_all_viewport(Operator):
 class CAMERA_OT_render_all_normal(Operator):
     bl_idname = "camera.render_all_normal"
     bl_label = "Render All Cameras (Normal)"
-    bl_description = "Render all cameras with normal render"
+    bl_description = "Render all cameras with normal render (timeline-ordered for marker mode)"
     
     _render_queue = []
     _current_index = -1
@@ -566,11 +564,14 @@ class CAMERA_OT_render_all_normal(Operator):
             self.report({'WARNING'}, "No cameras with settings found")
             return {'CANCELLED'}
         
+        # Build render queue based on frame range mode
         self._render_queue = []
         for cam_obj in cameras:
             ranges = get_all_marker_ranges(cam_obj)
             for start, end in ranges:
                 self._render_queue.append((cam_obj, start, end))
+        
+        print(f"Normal render queue: {len(self._render_queue)} jobs")
         
         self._current_index = -1
         self._render_complete = False
@@ -596,6 +597,8 @@ class CAMERA_OT_render_all_normal(Operator):
         RenderCleanupManager.store_settings(context)
         RenderCleanupManager.apply_camera_settings(context, cam_obj, frame_range=(start, end))
         
+        print(f"Rendering job {self._current_index + 1}/{len(self._render_queue)}: {cam_obj.name} [{start}-{end}]")
+        
         bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
     
     def render_complete_handler(self, scene, depsgraph):
@@ -620,6 +623,8 @@ class CAMERA_OT_render_all_normal(Operator):
         
         self._render_queue = []
         self._current_index = -1
+        
+        print("Batch rendering complete")
     
     def modal(self, context, event):
         if self._render_complete:

@@ -164,7 +164,7 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                 row = col.row(align=True)
                 row.menu("CAMERA_MT_resolution_presets_menu", text="Presets")
 
-            # Frame Range - HYBRID DETECTION
+            # Frame Range
             box = layout.box()
             row = box.row(align=True)
             row.prop(settings, "show_frame_range", 
@@ -176,23 +176,18 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             if settings.show_frame_range:
                 col = box.column(align=True)
                 
-                # Safety check
                 if not hasattr(settings, 'frame_range_mode'):
                     settings.frame_range_mode = 'PER_CAMERA'
                 
-                # Import detection utilities
                 from ..utils.marker_detection import get_marker_count, get_marker_frame_ranges
                 
-                # Detect mismatch
                 has_markers = get_marker_count(cam_obj) > 0
                 current_mode = settings.frame_range_mode
                 
-                # Mode selector
                 col.prop(settings, "frame_range_mode", text="")
                 
-                # HYBRID DETECTION: Show mismatch warnings
+                # Mismatch warnings
                 if current_mode == 'PER_CAMERA' and has_markers:
-                    # Markers exist but using per-camera mode
                     warn_box = col.box()
                     warn_col = warn_box.column(align=True)
                     warn_col.alert = True
@@ -207,14 +202,12 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                         range_text = f"{len(ranges)} range{'s' if len(ranges) != 1 else ''}"
                         warn_col.label(text=f"  {range_text} available")
                     
-                    # Quick switch button
                     op = warn_col.operator("cameraide.switch_to_timeline_mode", text="Switch to Timeline Mode", icon='FORWARD')
                     op.camera_name = cam_obj.name
                     
                     col.separator(factor=0.3)
                 
                 elif current_mode == 'TIMELINE_MARKERS' and not has_markers:
-                    # Timeline mode but no markers
                     warn_box = col.box()
                     warn_col = warn_box.column(align=True)
                     warn_col.alert = True
@@ -223,7 +216,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                     warn_col.label(text="No timeline markers found", icon='ERROR')
                     warn_col.label(text="  Add markers or switch mode")
                     
-                    # Quick switch button
                     op = warn_col.operator("cameraide.switch_to_percamera_mode", text="Switch to Per-Camera Mode", icon='FORWARD')
                     op.camera_name = cam_obj.name
                     
@@ -233,19 +225,16 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                 if current_mode == 'TIMELINE_MARKERS':
                     marker_count = get_marker_count(cam_obj)
                     if marker_count > 0:
-                        # Show marker info
                         info_box = col.box()
                         info_col = info_box.column(align=True)
                         info_col.scale_y = 0.8
                         info_col.label(text=f"Using {marker_count} timeline marker{'s' if marker_count != 1 else ''}", icon='BOOKMARKS')
                         
-                        # Show detected ranges
                         ranges = get_marker_frame_ranges(cam_obj)
                         if ranges:
                             for i, (start, end) in enumerate(ranges, 1):
                                 info_col.label(text=f"  Range {i}: {start} - {end}")
                         
-                        # Disabled controls showing detected values
                         col.separator(factor=0.5)
                         row = col.row(align=True)
                         row.enabled = False
@@ -255,8 +244,7 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                         row.enabled = False
                         row.prop(settings, "frame_step")
                 
-                else:  # PER_CAMERA mode
-                    # Editable custom ranges
+                else:
                     row = col.row(align=True)
                     row.prop(settings, "frame_start")
                     row.prop(settings, "frame_end")
@@ -293,15 +281,20 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             if settings.show_format_settings:
                 col = box.column(align=True)
                 
+                # Image formats
                 row = col.row(align=True)
                 row.prop_enum(settings, "output_format", 'PNG', text="PNG")
                 row.prop_enum(settings, "output_format", 'JPEG', text="JPEG")
                 row.prop_enum(settings, "output_format", 'OPEN_EXR', text="EXR")
 
+                # Video formats
                 row = col.row(align=True)
-                row.prop_enum(settings, "output_format", 'MP4', text="MP4")
-                row.prop_enum(settings, "output_format", 'MKV', text="MKV")
-                row.prop_enum(settings, "output_format", 'MOV', text="MOV")
+                row.prop_enum(settings, "output_format", 'H264_MP4', text="MP4")
+                row.prop_enum(settings, "output_format", 'H264_MKV', text="MKV")
+                
+                row = col.row(align=True)
+                row.prop_enum(settings, "output_format", 'PRORES_MOV', text="MOV")
+                
                 col.separator(factor=0.5)
 
                 # Format-specific options
@@ -318,9 +311,33 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                     row.prop(settings, "exr_color_depth", text="")
                     row.prop(settings, "exr_codec", text="")
 
-                if settings.output_format in {'MP4', 'MKV', 'MOV'}:
-                    row = col.row(align=True)
-                    col.prop(settings, "use_audio", text="Audio (mp3)")
+                elif settings.output_format in {'H264_MP4', 'H264_MKV'}:
+                    col.prop(settings, "video_quality", text="Quality")
+                    col.prop(settings, "video_bitrate")
+                    col.prop(settings, "video_gopsize")
+                    
+                    col.separator(factor=0.5)
+                    col.prop(settings, "use_audio")
+                    if settings.use_audio:
+                        row = col.row(align=True)
+                        row.prop(settings, "audio_codec", text="")
+                        row.prop(settings, "audio_bitrate")
+                
+                elif settings.output_format == 'PRORES_MOV':
+                    info_box = col.box()
+                    info_col = info_box.column(align=True)
+                    info_col.scale_y = 0.8
+                    info_col.label(text="ProRes 4444 Settings", icon='INFO')
+                    info_col.label(text="  • Perceptually lossless")
+                    info_col.label(text="  • Alpha channel support")
+                    info_col.label(text="  • Professional editing")
+                    
+                    col.separator(factor=0.5)
+                    col.prop(settings, "use_audio")
+                    if settings.use_audio:
+                        row = col.row(align=True)
+                        row.prop(settings, "audio_codec", text="")
+                        row.prop(settings, "audio_bitrate")
 
             # Extra Settings
             box = layout.box()
@@ -335,7 +352,7 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                 col = box.column(align=True)
                 if settings.output_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
                     col.prop(settings, "overwrite_existing")
-                if settings.output_format in {'PNG', 'OPEN_EXR'}:
+                if settings.output_format in {'PNG', 'OPEN_EXR', 'PRORES_MOV'}:
                     col.prop(settings, "film_transparent")
                 col.prop(settings, "include_camera_name")
                 col.prop(settings, "burn_metadata")
@@ -365,15 +382,12 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
 
 
 def register():
-    # Register operators
     bpy.utils.register_class(CAMERAIDE_OT_switch_to_timeline_mode)
     bpy.utils.register_class(CAMERAIDE_OT_switch_to_percamera_mode)
     
-    # Register scene properties
     bpy.types.Scene.cameraide_show_cameraide_list = bpy.props.BoolProperty(default=True)
     bpy.types.Scene.cameraide_show_other_list = bpy.props.BoolProperty(default=False)
     
-    # Register panel
     try:
         bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)
     except:
@@ -381,16 +395,13 @@ def register():
     bpy.utils.register_class(CAMERAIDE_PT_sidebar_panel)
 
 def unregister():
-    # Unregister panel
     try:
         bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)
     except:
         pass
     
-    # Unregister operators
     bpy.utils.unregister_class(CAMERAIDE_OT_switch_to_percamera_mode)
     bpy.utils.unregister_class(CAMERAIDE_OT_switch_to_timeline_mode)
     
-    # Unregister scene properties
     del bpy.types.Scene.cameraide_show_cameraide_list
     del bpy.types.Scene.cameraide_show_other_list
