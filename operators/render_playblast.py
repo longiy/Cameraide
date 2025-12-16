@@ -29,7 +29,9 @@ class CAMERA_OT_render_selected_viewport(Operator):
             add_render_handlers()
             
             context.scene.camera = cam_obj
-            RenderCleanupManager.apply_camera_settings(context, cam_obj)
+            
+            # Don't force image format - animations can use video formats
+            RenderCleanupManager.apply_camera_settings(context, cam_obj, force_image_format=False)
             
             for area in context.screen.areas:
                 if area.type == 'VIEW_3D':
@@ -69,7 +71,9 @@ class CAMERA_OT_render_selected_normal(Operator):
         try:
             RenderCleanupManager.store_settings(context)
             context.scene.camera = cam_obj
-            RenderCleanupManager.apply_camera_settings(context, cam_obj)
+            
+            # Don't force image format - animations can use video formats
+            RenderCleanupManager.apply_camera_settings(context, cam_obj, force_image_format=False)
             
             bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
             return {'FINISHED'}

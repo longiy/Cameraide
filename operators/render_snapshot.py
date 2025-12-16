@@ -22,6 +22,11 @@ class CAMERA_OT_render_snapshot_viewport(Operator):
         if not settings.use_custom_settings:
             self.report({'ERROR'}, "Custom settings are not enabled for this camera")
             return {'CANCELLED'}
+        
+        # Check if video format
+        is_video = settings.output_format in {'H264_MP4', 'H264_MKV', 'PRORES_MOV'}
+        if is_video:
+            self.report({'INFO'}, f"Camera set to {settings.output_format} - temporarily using PNG for snapshot")
             
         try:
             RenderCleanupManager.store_settings(context)
@@ -29,7 +34,9 @@ class CAMERA_OT_render_snapshot_viewport(Operator):
             add_render_handlers()
             
             context.scene.camera = cam_obj
-            RenderCleanupManager.apply_camera_settings(context, cam_obj)
+            
+            # Force image format for snapshots (can't render single frame as video)
+            RenderCleanupManager.apply_camera_settings(context, cam_obj, force_image_format=True)
             
             for area in context.screen.areas:
                 if area.type == 'VIEW_3D':
@@ -65,12 +72,19 @@ class CAMERA_OT_render_snapshot_normal(Operator):
         if not settings.use_custom_settings:
             self.report({'ERROR'}, "Custom settings are not enabled for this camera")
             return {'CANCELLED'}
+        
+        # Check if video format
+        is_video = settings.output_format in {'H264_MP4', 'H264_MKV', 'PRORES_MOV'}
+        if is_video:
+            self.report({'INFO'}, f"Camera set to {settings.output_format} - temporarily using PNG for snapshot")
             
         try:
             RenderCleanupManager.store_settings(context)
             
             context.scene.camera = cam_obj
-            RenderCleanupManager.apply_camera_settings(context, cam_obj)
+            
+            # Force image format for snapshots (can't render single frame as video)
+            RenderCleanupManager.apply_camera_settings(context, cam_obj, force_image_format=True)
             
             bpy.ops.render.render('INVOKE_DEFAULT', animation=False, write_still=True)
             

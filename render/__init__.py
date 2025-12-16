@@ -1,5 +1,6 @@
 """Render utilities package for Cameraide"""
-from . import handlers
+# DO NOT auto-import handlers - causes circular import
+# Modules should import handlers directly when needed
 from . import formats
 
-__all__ = ['handlers', 'formats']
+__all__ = ['formats']
