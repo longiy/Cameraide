@@ -10,22 +10,24 @@ bl_info = {
 
 import bpy
 
-# Import all modules
+# Import order matters - properties first, then utils, then operators/panels
 from . import properties
+from . import utils
 from . import operators
 from . import panels
-from . import utils
 
 def register():
+    # Register in dependency order
     properties.register()
+    utils.register()
     operators.register()
     panels.register()
-    utils.register()
 
 def unregister():
-    utils.unregister()
+    # Unregister in reverse order
     panels.unregister()
     operators.unregister()
+    utils.unregister()
     properties.unregister()
 
 if __name__ == "__main__":

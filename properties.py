@@ -1,3 +1,13 @@
+"""
+properties.py - NO CHANGES NEEDED
+
+The imports still work because:
+- update_frame_start is still in utils/callbacks.py
+- update_frame_end is still in utils/callbacks.py
+
+This file remains unchanged from the original.
+"""
+
 import bpy
 from bpy.props import (IntProperty, StringProperty, EnumProperty, 
                       BoolProperty, PointerProperty, FloatProperty)

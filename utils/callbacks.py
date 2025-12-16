@@ -1,56 +1,8 @@
+"""Viewport and camera change callbacks for Cameraide"""
 import bpy
-from contextlib import contextmanager
+from .frame_manager import frame_manager, prevent_recursive_update
+from .camera_names import update_camera_name
 
-HEART_PREFIX = "❤️ "
-
-class CameraFrameRanges:
-    ranges = {}
-    is_updating = False
-    previous_camera = None
-
-    @classmethod
-    def store_range(cls, camera_obj):
-        """Store a camera's frame range"""
-        if not camera_obj or camera_obj.type != 'CAMERA':
-            return
-            
-        settings = camera_obj.data.cameraide_settings
-        cls.ranges[camera_obj.name] = {
-            'start': settings.frame_start,
-            'end': settings.frame_end,
-            'befriended': settings.use_custom_settings,
-            'synced': settings.sync_frame_range,
-            'mode': settings.frame_range_mode
-        }
-
-    @classmethod
-    def get_range(cls, camera_obj):
-        """Get a camera's stored range"""
-        if not camera_obj or camera_obj.name not in cls.ranges:
-            return None
-        return cls.ranges[camera_obj.name]
-    
-    @classmethod
-    def clear(cls):
-        """Clear stored ranges"""
-        cls.ranges.clear()
-        cls.previous_camera = None
-        cls.is_updating = False
-
-frame_manager = CameraFrameRanges()
-
-@contextmanager
-def prevent_recursive_update():
-    """Context manager to prevent recursive updates"""
-    if frame_manager.is_updating:
-        yield
-        return
-    
-    frame_manager.is_updating = True
-    try:
-        yield
-    finally:
-        frame_manager.is_updating = False
 
 def update_viewport_resolution(context):
     """Update viewport resolution"""
@@ -62,32 +14,6 @@ def update_viewport_resolution(context):
     context.scene.render.resolution_y = settings.resolution_y
     context.scene.render.resolution_percentage = settings.resolution_percentage
 
-def apply_frame_range_to_scene(camera_obj, scene):
-    """Apply camera frame range to scene (only in PER_CAMERA mode)"""
-    if not camera_obj or camera_obj.type != 'CAMERA':
-        return
-        
-    settings = camera_obj.data.cameraide_settings
-    
-    # Only apply if in per-camera mode
-    if settings.frame_range_mode == 'PER_CAMERA':
-        with prevent_recursive_update():
-            scene.frame_start = settings.frame_start
-            scene.frame_end = settings.frame_end
-
-def store_scene_range_to_camera(camera_obj, scene):
-    """Store scene frame range in camera (only in PER_CAMERA mode)"""
-    if not camera_obj or camera_obj.type != 'CAMERA':
-        return
-        
-    settings = camera_obj.data.cameraide_settings
-    
-    # Only store if in per-camera mode
-    if settings.frame_range_mode == 'PER_CAMERA':
-        with prevent_recursive_update():
-            settings.frame_start = scene.frame_start
-            settings.frame_end = scene.frame_end
-        frame_manager.store_range(camera_obj)
 
 def update_frame_start(self, context):
     """Frame start update callback"""
@@ -104,6 +30,7 @@ def update_frame_start(self, context):
             context.scene.frame_start = self.frame_start
             frame_manager.store_range(camera)
 
+
 def update_frame_end(self, context):
     """Frame end update callback"""
     if frame_manager.is_updating:
@@ -118,6 +45,7 @@ def update_frame_end(self, context):
         with prevent_recursive_update():
             context.scene.frame_end = self.frame_end
             frame_manager.store_range(camera)
+
 
 @bpy.app.handlers.persistent
 def on_active_camera_changed(scene):
@@ -141,27 +69,6 @@ def on_active_camera_changed(scene):
     frame_manager.previous_camera = current_camera
     update_viewport_resolution(bpy.context)
 
-def get_clean_camera_name(camera_obj):
-    """Get camera name without heart emoji prefix"""
-    if not camera_obj:
-        return ""
-    current_name = camera_obj.name
-    if current_name.startswith(HEART_PREFIX):
-        return current_name[len(HEART_PREFIX):]
-    return current_name
-
-def update_camera_name(camera_obj, add_heart=True):
-    """Update camera name to add or remove heart emoji prefix"""
-    if not camera_obj:
-        return
-        
-    current_name = camera_obj.name
-    clean_name = get_clean_camera_name(camera_obj)
-    
-    new_name = HEART_PREFIX + clean_name if add_heart else clean_name
-        
-    if new_name != current_name:
-        camera_obj.name = new_name
 
 def on_befriend_toggle(camera_obj):
     """Handle befriend toggle"""
@@ -182,6 +89,7 @@ def on_befriend_toggle(camera_obj):
                 settings.frame_start = stored['start']
                 settings.frame_end = stored['end']
                 if settings.sync_frame_range and settings.frame_range_mode == 'PER_CAMERA' and camera_obj == scene.camera:
+                    from .frame_manager import apply_frame_range_to_scene
                     apply_frame_range_to_scene(camera_obj, scene)
             
             update_camera_name(camera_obj, True)
@@ -191,6 +99,7 @@ def on_befriend_toggle(camera_obj):
             update_camera_name(camera_obj, False)
         
         frame_manager.store_range(camera_obj)
+
 
 def on_sync_toggle(camera_obj):
     """Handle sync toggle"""
@@ -205,20 +114,24 @@ def on_sync_toggle(camera_obj):
             # On sync enable (only in per-camera mode)
             stored = frame_manager.get_range(camera_obj)
             if stored and camera_obj == scene.camera:
+                from .frame_manager import apply_frame_range_to_scene
                 apply_frame_range_to_scene(camera_obj, scene)
         else:
             # On sync disable
             frame_manager.store_range(camera_obj)
+
 
 def register():
     frame_manager.clear()
     if on_active_camera_changed not in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.append(on_active_camera_changed)
 
+
 def unregister():
     frame_manager.clear()
     if on_active_camera_changed in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(on_active_camera_changed)
+
 
 __all__ = [
     'update_viewport_resolution',
@@ -226,6 +139,5 @@ __all__ = [
     'update_frame_end',
     'on_active_camera_changed',
     'on_befriend_toggle',
-    'on_sync_toggle',
-    'get_clean_camera_name'
+    'on_sync_toggle'
 ]
