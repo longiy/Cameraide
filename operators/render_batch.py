@@ -1,4 +1,4 @@
-"""Batch render operators - RELIABLE VERSION"""
+"""Batch render operators - RENDER_WRITE HANDLER"""
 import bpy
 from bpy.types import Operator
 from ..utils.render_manager import RenderCleanupManager
@@ -13,6 +13,8 @@ class ViewportBatchRender:
         self.current_index = -1
         self.is_rendering = False
         self.cameraide_handler = None
+        self.is_active = False
+        self.expected_end_frame = -1
         
     def build_queue(self, context):
         """Build render queue from cameras"""
@@ -43,19 +45,24 @@ class ViewportBatchRender:
         if self.cameraide_handler and self.cameraide_handler not in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.append(self.cameraide_handler)
     
-    def render_complete_handler(self, scene, depsgraph=None):
-        """Called when viewport render completes"""
-        print(f"[Viewport] Render complete for job {self.current_index + 1}/{len(self.queue)}")
-        self.is_rendering = False
+    def on_frame_written(self, scene, depsgraph=None):
+        """Called after each frame is written - check if this is the last frame"""
+        current_frame = scene.frame_current
+        print(f"[Viewport] Frame {current_frame} written (end={self.expected_end_frame})")
         
-        if self.current_index < len(self.queue) - 1:
-            bpy.app.timers.register(self.start_next_render, first_interval=0.5)
-        else:
-            print(f"[Viewport] All jobs complete!")
-            bpy.app.timers.register(self.cleanup, first_interval=0.5)
+        if current_frame >= self.expected_end_frame:
+            print(f"[Viewport] Last frame reached! Job {self.current_index + 1}/{len(self.queue)} complete")
+            self.is_rendering = False
+            
+            if self.current_index < len(self.queue) - 1:
+                print(f"[Viewport] Scheduling next job...")
+                bpy.app.timers.register(self.start_next_render, first_interval=0.5)
+            else:
+                print(f"[Viewport] All jobs complete!")
+                bpy.app.timers.register(self.cleanup, first_interval=0.5)
     
     def start_next_render(self):
-        """Start next render job - called by timer"""
+        """Start next render job"""
         try:
             self.current_index += 1
             
@@ -64,12 +71,14 @@ class ViewportBatchRender:
                 return None
             
             cam_obj, start, end = self.queue[self.current_index]
+            self.expected_end_frame = end
             
-            print(f"\n[Viewport] Job {self.current_index + 1}/{len(self.queue)}")
+            print(f"\n{'='*60}")
+            print(f"[Viewport] Job {self.current_index + 1}/{len(self.queue)}")
             print(f"  Camera: {cam_obj.name}")
             print(f"  Frames: {start}-{end}")
+            print(f"{'='*60}")
             
-            # Apply settings
             bpy.context.scene.camera = cam_obj
             RenderCleanupManager.apply_camera_settings(
                 bpy.context, cam_obj,
@@ -79,7 +88,6 @@ class ViewportBatchRender:
             
             self.is_rendering = True
             
-            # Start viewport render
             for area in bpy.context.screen.areas:
                 if area.type == 'VIEW_3D':
                     override = bpy.context.copy()
@@ -98,36 +106,44 @@ class ViewportBatchRender:
     
     def cleanup(self):
         """Cleanup handlers and restore settings"""
-        print(f"[Viewport] Cleaning up...")
+        print(f"\n[Viewport] Cleaning up...")
         
-        if self.render_complete_handler in bpy.app.handlers.render_post:
-            bpy.app.handlers.render_post.remove(self.render_complete_handler)
+        self.is_active = False
+        
+        if viewport_frame_written_handler in bpy.app.handlers.render_write:
+            bpy.app.handlers.render_write.remove(viewport_frame_written_handler)
+            print(f"[Viewport] Removed render_write handler")
+        if viewport_render_cancel_handler in bpy.app.handlers.render_cancel:
+            bpy.app.handlers.render_cancel.remove(viewport_render_cancel_handler)
+            print(f"[Viewport] Removed render_cancel handler")
         
         RenderCleanupManager.restore_settings(bpy.context)
         self.restore_cameraide_handler()
         
+        print(f"[Viewport] Cleanup complete!\n")
         return None
     
     def start(self, context):
         """Start batch rendering"""
-        # Store original settings
-        RenderCleanupManager.store_settings(context)
+        print(f"\n[Viewport] Starting batch render")
         
-        # Disable Cameraide handler
+        RenderCleanupManager.store_settings(context)
         self.disable_cameraide_handler()
         
-        # Clean existing handlers
-        if self.render_complete_handler in bpy.app.handlers.render_post:
-            bpy.app.handlers.render_post.remove(self.render_complete_handler)
+        if viewport_frame_written_handler in bpy.app.handlers.render_write:
+            bpy.app.handlers.render_write.remove(viewport_frame_written_handler)
+        if viewport_render_cancel_handler in bpy.app.handlers.render_cancel:
+            bpy.app.handlers.render_cancel.remove(viewport_render_cancel_handler)
         
-        # Add handler
-        bpy.app.handlers.render_post.append(self.render_complete_handler)
+        bpy.app.handlers.render_write.append(viewport_frame_written_handler)
+        bpy.app.handlers.render_cancel.append(viewport_render_cancel_handler)
+        print(f"[Viewport] Handlers added")
         
-        # Reset state
         self.current_index = -1
         self.is_rendering = False
+        self.is_active = True
+        self.expected_end_frame = -1
         
-        # Start first render
         bpy.app.timers.register(self.start_next_render, first_interval=0.5)
 
 
@@ -139,6 +155,7 @@ class NormalBatchRender:
         self.current_index = -1
         self.is_rendering = False
         self.cameraide_handler = None
+        self.is_active = False
         
     def build_queue(self, context):
         """Build render queue from cameras"""
@@ -169,9 +186,9 @@ class NormalBatchRender:
         if self.cameraide_handler and self.cameraide_handler not in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.append(self.cameraide_handler)
     
-    def render_complete_handler(self, scene, depsgraph=None):
+    def on_render_complete(self):
         """Called when render completes"""
-        print(f"[Normal] Render complete for job {self.current_index + 1}/{len(self.queue)}")
+        print(f"[Normal] Job {self.current_index + 1}/{len(self.queue)} complete")
         self.is_rendering = False
         
         if self.current_index < len(self.queue) - 1:
@@ -180,13 +197,13 @@ class NormalBatchRender:
             print(f"[Normal] All jobs complete!")
             bpy.app.timers.register(self.cleanup, first_interval=0.5)
     
-    def render_cancel_handler(self, scene, depsgraph=None):
+    def on_render_cancel(self):
         """Called if render cancelled"""
         print(f"[Normal] Render cancelled")
         bpy.app.timers.register(self.cleanup, first_interval=0.5)
     
     def start_next_render(self):
-        """Start next render job - called by timer"""
+        """Start next render job"""
         try:
             self.current_index += 1
             
@@ -200,7 +217,6 @@ class NormalBatchRender:
             print(f"  Camera: {cam_obj.name}")
             print(f"  Frames: {start}-{end}")
             
-            # Apply settings
             bpy.context.scene.camera = cam_obj
             RenderCleanupManager.apply_camera_settings(
                 bpy.context, cam_obj,
@@ -209,8 +225,6 @@ class NormalBatchRender:
             )
             
             self.is_rendering = True
-            
-            # Start normal render
             bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
             
         except Exception as e:
@@ -225,10 +239,12 @@ class NormalBatchRender:
         """Cleanup handlers and restore settings"""
         print(f"[Normal] Cleaning up...")
         
-        if self.render_complete_handler in bpy.app.handlers.render_complete:
-            bpy.app.handlers.render_complete.remove(self.render_complete_handler)
-        if self.render_cancel_handler in bpy.app.handlers.render_cancel:
-            bpy.app.handlers.render_cancel.remove(self.render_cancel_handler)
+        self.is_active = False
+        
+        if normal_render_complete_handler in bpy.app.handlers.render_complete:
+            bpy.app.handlers.render_complete.remove(normal_render_complete_handler)
+        if normal_render_cancel_handler in bpy.app.handlers.render_cancel:
+            bpy.app.handlers.render_cancel.remove(normal_render_cancel_handler)
         
         RenderCleanupManager.restore_settings(bpy.context)
         self.restore_cameraide_handler()
@@ -237,33 +253,53 @@ class NormalBatchRender:
     
     def start(self, context):
         """Start batch rendering"""
-        # Store original settings
         RenderCleanupManager.store_settings(context)
-        
-        # Disable Cameraide handler
         self.disable_cameraide_handler()
         
-        # Clean existing handlers
-        if self.render_complete_handler in bpy.app.handlers.render_complete:
-            bpy.app.handlers.render_complete.remove(self.render_complete_handler)
-        if self.render_cancel_handler in bpy.app.handlers.render_cancel:
-            bpy.app.handlers.render_cancel.remove(self.render_cancel_handler)
+        if normal_render_complete_handler in bpy.app.handlers.render_complete:
+            bpy.app.handlers.render_complete.remove(normal_render_complete_handler)
+        if normal_render_cancel_handler in bpy.app.handlers.render_cancel:
+            bpy.app.handlers.render_cancel.remove(normal_render_cancel_handler)
         
-        # Add handlers
-        bpy.app.handlers.render_complete.append(self.render_complete_handler)
-        bpy.app.handlers.render_cancel.append(self.render_cancel_handler)
+        bpy.app.handlers.render_complete.append(normal_render_complete_handler)
+        bpy.app.handlers.render_cancel.append(normal_render_cancel_handler)
         
-        # Reset state
         self.current_index = -1
         self.is_rendering = False
+        self.is_active = True
         
-        # Start first render
         bpy.app.timers.register(self.start_next_render, first_interval=0.5)
 
 
 # Global instances
 viewport_batch = ViewportBatchRender()
 normal_batch = NormalBatchRender()
+
+
+# Module-level handlers
+def viewport_frame_written_handler(scene, depsgraph=None):
+    """Handler for viewport frame written - fires after each frame"""
+    if viewport_batch.is_active:
+        viewport_batch.on_frame_written(scene, depsgraph)
+
+
+def viewport_render_cancel_handler(scene, depsgraph=None):
+    """Handler for viewport render cancellation"""
+    if viewport_batch.is_active:
+        print(f"[Viewport] Render cancelled")
+        bpy.app.timers.register(viewport_batch.cleanup, first_interval=0.5)
+
+
+def normal_render_complete_handler(scene, depsgraph=None):
+    """Handler for normal render completion"""
+    if normal_batch.is_active:
+        normal_batch.on_render_complete()
+
+
+def normal_render_cancel_handler(scene, depsgraph=None):
+    """Handler for normal render cancellation"""
+    if normal_batch.is_active:
+        normal_batch.on_render_cancel()
 
 
 class CAMERA_OT_render_all_viewport(Operator):
@@ -325,13 +361,14 @@ def register():
 
 
 def unregister():
-    # Cleanup any active renders
-    if viewport_batch.render_complete_handler in bpy.app.handlers.render_post:
-        bpy.app.handlers.render_post.remove(viewport_batch.render_complete_handler)
-    if normal_batch.render_complete_handler in bpy.app.handlers.render_complete:
-        bpy.app.handlers.render_complete.remove(normal_batch.render_complete_handler)
-    if normal_batch.render_cancel_handler in bpy.app.handlers.render_cancel:
-        bpy.app.handlers.render_cancel.remove(normal_batch.render_cancel_handler)
+    if viewport_frame_written_handler in bpy.app.handlers.render_write:
+        bpy.app.handlers.render_write.remove(viewport_frame_written_handler)
+    if viewport_render_cancel_handler in bpy.app.handlers.render_cancel:
+        bpy.app.handlers.render_cancel.remove(viewport_render_cancel_handler)
+    if normal_render_complete_handler in bpy.app.handlers.render_complete:
+        bpy.app.handlers.render_complete.remove(normal_render_complete_handler)
+    if normal_render_cancel_handler in bpy.app.handlers.render_cancel:
+        bpy.app.handlers.render_cancel.remove(normal_render_cancel_handler)
     
     viewport_batch.restore_cameraide_handler()
     normal_batch.restore_cameraide_handler()
