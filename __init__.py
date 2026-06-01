@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Cameraide", 
     "author": "longiy",
-    "version": (1, 0, 8),
+    "version": (1, 0, 9),
     "blender": (4, 2, 0),
     "location": "Properties > Camera > Cameraide, 3D View > Sidebar > Cameraide",
     "description": "Adds custom settings for each camera with improved UI and features",

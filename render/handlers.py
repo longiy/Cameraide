@@ -7,12 +7,25 @@ def render_complete_handler(scene, depsgraph):
     """Handler for render completion"""
     RenderCleanupManager.restore_settings(bpy.context)
     remove_render_handlers()
+    _refresh_native_snapshot(scene)
 
 
 def render_cancel_handler(scene, depsgraph):
     """Handler for render cancellation"""
     RenderCleanupManager.restore_settings(bpy.context)
     remove_render_handlers()
+    _refresh_native_snapshot(scene)
+
+
+def _refresh_native_snapshot(scene):
+    """After restoring native settings, re-push cameraide values so the
+    snapshot stays in sync and the native-change handler doesn't misread
+    the restored state as a user edit."""
+    cam = scene.camera
+    if not cam or not cam.data.cameraide_settings.use_custom_settings:
+        return
+    from ..utils.callbacks import apply_cameraide_to_native
+    apply_cameraide_to_native(cam, scene)
 
 
 def add_render_handlers():
