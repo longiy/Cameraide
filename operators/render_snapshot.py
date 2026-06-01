@@ -10,18 +10,18 @@ class CAMERA_OT_render_snapshot_viewport(Operator):
     bl_idname = "camera.render_snapshot_viewport"
     bl_label = "Render Snapshot (Viewport)"
     bl_description = "Render current frame using viewport renderer"
-    
+
     @classmethod
     def poll(cls, context):
-        return context.active_object and context.active_object.type == 'CAMERA'
-    
+        cam = context.scene.camera
+        return cam is not None and cam.data.cameraide_settings.use_custom_settings
+
     def execute(self, context):
-        cam_obj = context.active_object
+        if context.active_object and context.active_object.type == 'CAMERA' and context.active_object.data.cameraide_settings.use_custom_settings:
+            cam_obj = context.active_object
+        else:
+            cam_obj = context.scene.camera
         settings = cam_obj.data.cameraide_settings
-        
-        if not settings.use_custom_settings:
-            self.report({'ERROR'}, "Custom settings are not enabled for this camera")
-            return {'CANCELLED'}
         
         # Check if video format
         is_video = settings.output_format in {'H264_MP4', 'H264_MKV', 'PRORES_MOV'}
@@ -60,18 +60,18 @@ class CAMERA_OT_render_snapshot_normal(Operator):
     bl_idname = "camera.render_snapshot_normal"
     bl_label = "Render Snapshot (Normal)"
     bl_description = "Render current frame using normal renderer"
-    
+
     @classmethod
     def poll(cls, context):
-        return context.active_object and context.active_object.type == 'CAMERA'
-    
+        cam = context.scene.camera
+        return cam is not None and cam.data.cameraide_settings.use_custom_settings
+
     def execute(self, context):
-        cam_obj = context.active_object
+        if context.active_object and context.active_object.type == 'CAMERA' and context.active_object.data.cameraide_settings.use_custom_settings:
+            cam_obj = context.active_object
+        else:
+            cam_obj = context.scene.camera
         settings = cam_obj.data.cameraide_settings
-        
-        if not settings.use_custom_settings:
-            self.report({'ERROR'}, "Custom settings are not enabled for this camera")
-            return {'CANCELLED'}
         
         # Check if video format
         is_video = settings.output_format in {'H264_MP4', 'H264_MKV', 'PRORES_MOV'}

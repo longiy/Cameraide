@@ -10,18 +10,18 @@ class CAMERA_OT_render_selected_viewport(Operator):
     bl_idname = "camera.render_selected_viewport"
     bl_label = "Render Viewport"
     bl_description = "Render animation using viewport renderer"
-    
+
     @classmethod
     def poll(cls, context):
-        return context.active_object and context.active_object.type == 'CAMERA'
-    
+        cam = context.scene.camera
+        return cam is not None and cam.data.cameraide_settings.use_custom_settings
+
     def execute(self, context):
-        cam_obj = context.active_object
+        if context.active_object and context.active_object.type == 'CAMERA' and context.active_object.data.cameraide_settings.use_custom_settings:
+            cam_obj = context.active_object
+        else:
+            cam_obj = context.scene.camera
         settings = cam_obj.data.cameraide_settings
-        
-        if not settings.use_custom_settings:
-            self.report({'ERROR'}, "Custom settings are not enabled for this camera")
-            return {'CANCELLED'}
             
         try:
             RenderCleanupManager.store_settings(context)
@@ -55,18 +55,18 @@ class CAMERA_OT_render_selected_normal(Operator):
     bl_idname = "camera.render_selected_normal"
     bl_label = "Render Normal"
     bl_description = "Render selected camera with normal render"
-    
+
     @classmethod
     def poll(cls, context):
-        return context.active_object and context.active_object.type == 'CAMERA'
-    
+        cam = context.scene.camera
+        return cam is not None and cam.data.cameraide_settings.use_custom_settings
+
     def execute(self, context):
-        cam_obj = context.active_object
+        if context.active_object and context.active_object.type == 'CAMERA' and context.active_object.data.cameraide_settings.use_custom_settings:
+            cam_obj = context.active_object
+        else:
+            cam_obj = context.scene.camera
         settings = cam_obj.data.cameraide_settings
-        
-        if not settings.use_custom_settings:
-            self.report({'ERROR'}, "Custom settings are not enabled for this camera")
-            return {'CANCELLED'}
             
         try:
             RenderCleanupManager.store_settings(context)

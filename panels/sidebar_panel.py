@@ -5,7 +5,7 @@ from bpy.types import Panel
 
 class CAMERAIDE_PT_sidebar_panel(Panel):
     """Main sidebar panel for Cameraide"""
-    bl_label = "Cameraide 1.0.7"
+    bl_label = "Cameraide 1.0.8"
     bl_idname = "CAMERAIDE_PT_sidebar_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -384,18 +384,22 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         """Draw extra settings section"""
         box = layout.box()
         row = box.row(align=True)
-        row.prop(settings, "show_extra_settings", 
-            text="Extra Settings", 
+        row.prop(settings, "show_extra_settings",
+            text="Extra Settings",
             icon='TRIA_DOWN' if settings.show_extra_settings else 'TRIA_RIGHT',
             emboss=False
         )
-        
+
         if settings.show_extra_settings:
             col = box.column(align=True)
             if settings.output_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
                 col.prop(settings, "overwrite_existing")
-            if settings.output_format in {'PNG', 'OPEN_EXR', 'PRORES_MOV'}:
-                col.prop(settings, "film_transparent")
+            if settings.output_format == 'PNG':
+                col.prop(settings, "png_film_transparent")
+            elif settings.output_format == 'OPEN_EXR':
+                col.prop(settings, "exr_film_transparent")
+            elif settings.output_format == 'PRORES_MOV':
+                col.prop(settings, "prores_film_transparent")
             col.prop(settings, "include_camera_name")
             col.prop(settings, "burn_metadata")
 
@@ -404,22 +408,20 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         # Viewport Render Section
         box = layout.box()
         box.label(text="Viewport Render", icon='RESTRICT_VIEW_OFF')
-        
-        row = box.row(align=True)
-        row.scale_y = 1.3
-        row.operator("camera.render_snapshot_viewport", text="Snapshot", icon='RENDER_STILL')
-        row.operator("camera.render_selected_viewport", text="Playblast", icon='RENDER_ANIMATION')
-        row.operator("camera.render_all_viewport", text="All Cameras", icon='CAMERA_DATA')
-        
+        col = box.column(align=True)
+        col.scale_y = 1.4
+        col.operator("camera.render_snapshot_viewport", text="Snapshot", icon='RENDER_STILL')
+        col.operator("camera.render_selected_viewport", text="Playblast", icon='RENDER_ANIMATION')
+        col.operator("camera.render_all_viewport", text="All Cameras", icon='CAMERA_DATA')
+
         # Normal Render Section
         box = layout.box()
         box.label(text="Normal Render", icon='RESTRICT_RENDER_OFF')
-        
-        row = box.row(align=True)
-        row.scale_y = 1.3
-        row.operator("camera.render_snapshot_normal", text="Snapshot", icon='RENDER_STILL')
-        row.operator("camera.render_selected_normal", text="Playblast", icon='RENDER_ANIMATION')
-        row.operator("camera.render_all_normal", text="All Cameras", icon='CAMERA_DATA')
+        col = box.column(align=True)
+        col.scale_y = 1.4
+        col.operator("camera.render_snapshot_normal", text="Snapshot", icon='RENDER_STILL')
+        col.operator("camera.render_selected_normal", text="Playblast", icon='RENDER_ANIMATION')
+        col.operator("camera.render_all_normal", text="All Cameras", icon='CAMERA_DATA')
 
 
 def register():

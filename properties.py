@@ -232,9 +232,9 @@ class CameraideSettings(PropertyGroup):
     use_audio: BoolProperty(
         name="Include Audio",
         description="Include audio in the rendered video",
-        default=False
+        default=True
     )
-    
+
     audio_codec: EnumProperty(
         name="Audio Codec",
         description="Audio codec settings",
@@ -243,9 +243,9 @@ class CameraideSettings(PropertyGroup):
             ('AAC', "AAC", "AAC audio codec (recommended)"),
             ('MP3', "MP3", "MP3 audio codec"),
         ],
-        default='NONE'
+        default='MP3'
     )
-    
+
     audio_bitrate: IntProperty(
         name="Audio Bitrate",
         description="Audio bitrate (kb/s)",
@@ -254,7 +254,7 @@ class CameraideSettings(PropertyGroup):
         default=192,
         subtype='NONE'
     )
-    
+
     # Additional Settings
     overwrite_existing: BoolProperty(
         name="Overwrite",
@@ -271,9 +271,19 @@ class CameraideSettings(PropertyGroup):
         description="Synchronize with 'Burn Into Image' metadata setting",
         default=False
     )
-    film_transparent: BoolProperty(
+    png_film_transparent: BoolProperty(
         name="Alpha Transparency",
-        description="Make the alpha channel transparent for this camera",
+        description="Render with transparent background (PNG)",
+        default=True
+    )
+    exr_film_transparent: BoolProperty(
+        name="Alpha Transparency",
+        description="Render with transparent background (EXR)",
+        default=True
+    )
+    prores_film_transparent: BoolProperty(
+        name="Alpha Transparency",
+        description="Render with transparent background (ProRes MOV)",
         default=True
     )
     

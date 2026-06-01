@@ -147,7 +147,14 @@ class RenderCleanupManager:
         scene.frame_step = settings.frame_step
         scene.render.resolution_x = res_x
         scene.render.resolution_y = res_y
-        scene.render.film_transparent = settings.film_transparent
+        if settings.output_format == 'PNG' or forced_format == 'PNG':
+            scene.render.film_transparent = settings.png_film_transparent
+        elif settings.output_format == 'OPEN_EXR':
+            scene.render.film_transparent = settings.exr_film_transparent
+        elif settings.output_format == 'PRORES_MOV':
+            scene.render.film_transparent = settings.prores_film_transparent
+        else:
+            scene.render.film_transparent = False
         scene.render.use_stamp = settings.burn_metadata
 
         # Output path
