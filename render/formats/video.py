@@ -41,7 +41,7 @@ def apply_video_format(settings, context):
         ffmpeg.maxrate = settings.video_bitrate * 2
         ffmpeg.gopsize = settings.video_gopsize
     
-    if settings.use_audio and settings.audio_codec != 'NONE':
+    if settings.audio_codec != 'NONE':
         ffmpeg.audio_codec = settings.audio_codec
         ffmpeg.audio_bitrate = settings.audio_bitrate
     else:

@@ -85,8 +85,8 @@ def apply_cameraide_to_native(cam, scene):
                 ffmpeg.gopsize = settings.video_gopsize
                 render.film_transparent = False
 
-            ffmpeg.audio_codec = settings.audio_codec if (settings.use_audio and settings.audio_codec != 'NONE') else 'NONE'
-            if settings.use_audio and settings.audio_codec != 'NONE':
+            ffmpeg.audio_codec = settings.audio_codec if settings.audio_codec != 'NONE' else 'NONE'
+            if settings.audio_codec != 'NONE':
                 ffmpeg.audio_bitrate = settings.audio_bitrate
 
         print(f"[Cameraide] → native pushed: cam={cam.name}  fmt={fmt}")
@@ -140,15 +140,12 @@ def _sync_native_to_cameraide(cam, scene):
             settings.video_bitrate = ffmpeg.video_bitrate
             settings.video_gopsize = ffmpeg.gopsize
 
+        try:
+            settings.audio_codec = ffmpeg.audio_codec
+        except Exception:
+            pass
         if ffmpeg.audio_codec != 'NONE':
-            settings.use_audio = True
-            try:
-                settings.audio_codec = ffmpeg.audio_codec
-            except Exception:
-                pass
             settings.audio_bitrate = ffmpeg.audio_bitrate
-        else:
-            settings.use_audio = False
 
 def _sync_native_resolution_to_cameraide(cam, scene):
     """Sync only resolution from native → cameraide."""

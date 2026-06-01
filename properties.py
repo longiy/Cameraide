@@ -313,6 +313,16 @@ class CameraideSettings(PropertyGroup):
         description="Show or hide extra settings",
         default=False
     )
+    show_file_output_advanced: BoolProperty(
+        name="Advanced",
+        description="Show or hide advanced file output options",
+        default=False
+    )
+    show_format_advanced: BoolProperty(
+        name="Advanced",
+        description="Show or hide advanced format settings",
+        default=False
+    )
 
 
 def register():

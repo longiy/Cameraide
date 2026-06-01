@@ -46,7 +46,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             self._draw_frame_range_settings(layout, settings, cam_obj, context)
             self._draw_file_output_settings(layout, settings)
             self._draw_format_settings(layout, settings)
-            self._draw_extra_settings(layout, settings)
             self._draw_render_buttons(layout)
 
     def _draw_befriend_button(self, layout, settings, camera_name):
@@ -264,6 +263,20 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         col.prop(settings, "output_subfolder", text="")
         col.prop(settings, "output_filename", text="")
 
+        # Advanced sub-group
+        adv_box = col.box()
+        adv_row = adv_box.row(align=True)
+        adv_row.prop(settings, "show_file_output_advanced",
+            text="Advanced",
+            icon='TRIA_DOWN' if settings.show_file_output_advanced else 'TRIA_RIGHT',
+            emboss=False
+        )
+        if settings.show_file_output_advanced:
+            adv_col = adv_box.column(align=True)
+            adv_col.prop(settings, "overwrite_existing")
+            adv_col.prop(settings, "include_camera_name")
+            adv_col.prop(settings, "burn_metadata")
+
     def _draw_format_settings(self, layout, settings):
         box = layout.box()
         row = box.row(align=True)
@@ -292,21 +305,32 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
 
         col.separator(factor=0.5)
 
-        if settings.output_format == 'PNG':
-            self._draw_png_settings(col, settings)
-        elif settings.output_format == 'JPEG':
-            self._draw_jpeg_settings(col, settings)
-        elif settings.output_format == 'OPEN_EXR':
-            self._draw_exr_settings(col, settings)
-        elif settings.output_format in {'H264_MP4', 'H264_MKV'}:
-            self._draw_h264_settings(col, settings)
-        elif settings.output_format == 'PRORES_MOV':
-            self._draw_prores_settings(col, settings)
+        # Advanced sub-group for format-specific settings
+        adv_box = col.box()
+        adv_row = adv_box.row(align=True)
+        adv_row.prop(settings, "show_format_advanced",
+            text="Advanced",
+            icon='TRIA_DOWN' if settings.show_format_advanced else 'TRIA_RIGHT',
+            emboss=False
+        )
+        if settings.show_format_advanced:
+            adv_col = adv_box.column(align=True)
+            if settings.output_format == 'PNG':
+                self._draw_png_settings(adv_col, settings)
+            elif settings.output_format == 'JPEG':
+                self._draw_jpeg_settings(adv_col, settings)
+            elif settings.output_format == 'OPEN_EXR':
+                self._draw_exr_settings(adv_col, settings)
+            elif settings.output_format in {'H264_MP4', 'H264_MKV'}:
+                self._draw_h264_settings(adv_col, settings)
+            elif settings.output_format == 'PRORES_MOV':
+                self._draw_prores_settings(adv_col, settings)
 
     def _draw_png_settings(self, col, settings):
         row = col.row(align=True)
         row.prop(settings, "png_color_depth", text="")
         row.prop(settings, "png_compression", slider=True)
+        col.prop(settings, "png_film_transparent")
 
     def _draw_jpeg_settings(self, col, settings):
         col.prop(settings, "jpeg_quality", slider=True)
@@ -315,94 +339,50 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         row = col.row(align=True)
         row.prop(settings, "exr_color_depth", text="")
         row.prop(settings, "exr_codec", text="")
+        col.prop(settings, "exr_film_transparent")
 
     def _draw_h264_settings(self, col, settings):
         col.prop(settings, "video_quality", text="Quality")
-        col.prop(settings, "video_bitrate")
-        col.prop(settings, "video_gopsize")
+        row = col.row(align=True)
+        row.prop(settings, "video_bitrate")
+        row.prop(settings, "video_gopsize")
         col.separator(factor=0.5)
-        col.prop(settings, "use_audio")
-        if settings.use_audio:
-            row = col.row(align=True)
-            row.prop(settings, "audio_codec", text="")
+        row = col.row(align=True)
+        row.prop(settings, "audio_codec", text="")
+        if settings.audio_codec != 'NONE':
             row.prop(settings, "audio_bitrate")
 
     def _draw_prores_settings(self, col, settings):
-        info_box = col.box()
-        info_col = info_box.column(align=True)
-        info_col.scale_y = 0.8
-        info_col.label(text="ProRes 4444 Settings", icon='INFO')
-        info_col.label(text="  • Perceptually lossless")
-        info_col.label(text="  • Alpha channel support")
-        info_col.label(text="  • Professional editing")
-        col.separator(factor=0.5)
-        col.prop(settings, "use_audio")
-        if settings.use_audio:
-            row = col.row(align=True)
-            row.prop(settings, "audio_codec", text="")
+        row = col.row(align=True)
+        row.prop(settings, "audio_codec", text="")
+        if settings.audio_codec != 'NONE':
             row.prop(settings, "audio_bitrate")
-
-    def _draw_extra_settings(self, layout, settings):
-        box = layout.box()
-        row = box.row(align=True)
-        row.prop(settings, "show_extra_settings",
-            text="Extra Settings",
-            icon='TRIA_DOWN' if settings.show_extra_settings else 'TRIA_RIGHT',
-            emboss=False
-        )
-
-        if not settings.show_extra_settings:
-            return
-
-        col = box.column(align=True)
-        if settings.output_format in {'PNG', 'JPEG', 'OPEN_EXR'}:
-            col.prop(settings, "overwrite_existing")
-        if settings.output_format == 'PNG':
-            col.prop(settings, "png_film_transparent")
-        elif settings.output_format == 'OPEN_EXR':
-            col.prop(settings, "exr_film_transparent")
-        elif settings.output_format == 'PRORES_MOV':
-            col.prop(settings, "prores_film_transparent")
-        col.prop(settings, "include_camera_name")
-        col.prop(settings, "burn_metadata")
+        col.prop(settings, "prores_film_transparent")
 
     def _draw_render_buttons(self, layout):
         box = layout.box()
-        row = box.row(align=True)
-        row.prop(bpy.context.scene, "cameraide_show_render_panel",
-            text="Render",
-            icon='TRIA_DOWN' if bpy.context.scene.cameraide_show_render_panel else 'TRIA_RIGHT',
-            emboss=False
-        )
-        row.label(text="", icon='RENDER_STILL')
-
-        if not bpy.context.scene.cameraide_show_render_panel:
-            return
-
-        # Two-column layout: Viewport | Normal
         split = box.split(factor=0.5, align=True)
 
         # Left column — Viewport
         col_vp = split.column(align=True)
         col_vp.label(text="Viewport", icon='RESTRICT_VIEW_OFF')
         col_vp.scale_y = 1.3
-        col_vp.operator("camera.render_snapshot_viewport",  text="Snapshot",    icon='RENDER_STILL')
-        col_vp.operator("camera.render_selected_viewport",  text="Playblast",   icon='RENDER_ANIMATION')
-        col_vp.operator("camera.render_all_viewport",       text="All Cameras", icon='CAMERA_DATA')
+        col_vp.operator("camera.render_snapshot_viewport", text="Snapshot",    icon='RENDER_STILL')
+        col_vp.operator("camera.render_selected_viewport", text="Playblast",   icon='RENDER_ANIMATION')
+        col_vp.operator("camera.render_all_viewport",      text="All Cameras", icon='CAMERA_DATA')
 
         # Right column — Normal
         col_nr = split.column(align=True)
         col_nr.label(text="Normal", icon='RESTRICT_RENDER_OFF')
         col_nr.scale_y = 1.3
-        col_nr.operator("camera.render_snapshot_normal",  text="Snapshot",    icon='RENDER_STILL')
-        col_nr.operator("camera.render_selected_normal",  text="Playblast",   icon='RENDER_ANIMATION')
-        col_nr.operator("camera.render_all_normal",       text="All Cameras", icon='CAMERA_DATA')
+        col_nr.operator("camera.render_snapshot_normal", text="Snapshot",    icon='RENDER_STILL')
+        col_nr.operator("camera.render_selected_normal", text="Playblast",   icon='RENDER_ANIMATION')
+        col_nr.operator("camera.render_all_normal",      text="All Cameras", icon='CAMERA_DATA')
 
 
 def register():
     bpy.types.Scene.cameraide_show_cameraide_list = bpy.props.BoolProperty(default=True)
     bpy.types.Scene.cameraide_show_other_list = bpy.props.BoolProperty(default=False)
-    bpy.types.Scene.cameraide_show_render_panel = bpy.props.BoolProperty(default=True)
 
     try:
         bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)
@@ -419,4 +399,3 @@ def unregister():
 
     del bpy.types.Scene.cameraide_show_cameraide_list
     del bpy.types.Scene.cameraide_show_other_list
-    del bpy.types.Scene.cameraide_show_render_panel
