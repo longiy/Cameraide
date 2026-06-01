@@ -1,0 +1,52 @@
+Category,Feature,Description
+Camera Management,Per-Camera Settings,Each camera stores its own independent render settings via a custom PropertyGroup
+Camera Management,Befriend Toggle,One-click button to enable/disable Cameraide settings for any camera
+Camera Management,Cameraide Camera List,Collapsible list of cameras with Cameraide enabled; click to select
+Camera Management,Other Camera List,Collapsible list of unfriended cameras with quick-add button
+Camera Management,Scene Camera Fallback,Render operators use the scene camera when no camera is explicitly selected
+Resolution,Per-Camera Resolution,Independent X/Y resolution stored per camera
+Resolution,Resolution Percentage,Scale percentage stored per camera
+Resolution,Swap Resolution,One-click button to swap X and Y resolution values
+Resolution,Resolution Presets,Preset menu (e.g. 1080p, 4K) placed above resolution inputs
+Resolution,Live Native Sync,Cameraide resolution is pushed into Blender's native render panel in real time
+Frame Range,Per-Camera Frame Range,Independent start/end/step frame range per camera
+Frame Range,Frame Range Sync,Optional sync toggle that pushes the camera's frame range to the scene timeline
+Frame Range,Frame Range Clamping,Start frame is clamped to end − 1; end frame is clamped to start + 1
+Frame Range,Timeline Marker Mode,Alternate mode reads frame ranges from timeline markers bound to the camera
+Frame Range,Mode Auto-Detection,On befriend Cameraide auto-detects whether timeline markers are present
+Frame Range,Marker Warning,Warning box shown when mode and marker presence are mismatched
+File Output,Output Path,Per-camera base output directory
+File Output,Output Subfolder,Per-camera subfolder appended to the base path
+File Output,Output Filename,Per-camera filename prefix
+File Output,Advanced Group,Collapsible sub-group containing overwrite, camera name inclusion, and metadata burn
+File Output,Overwrite Existing,Skip re-rendering frames that already exist on disk
+File Output,Include Camera Name,Append the camera object name to the output filename
+File Output,Burn Metadata,Embed render metadata (timecode, settings) into the output image
+File Format,PNG,Outputs PNG with configurable bit depth and compression
+File Format,JPEG,Outputs JPEG with configurable quality
+File Format,OpenEXR,Outputs EXR with configurable bit depth and codec
+File Format,H.264 MP4,Outputs MP4 using H.264 codec with quality, bitrate, and GOP size controls
+File Format,H.264 MKV,Outputs MKV using H.264 codec with quality, bitrate, and GOP size controls
+File Format,ProRes MOV,Outputs QuickTime MOV using Apple ProRes codec (perceptually lossless)
+File Format,Advanced Group,Collapsible sub-group per format for depth/codec/quality/audio settings
+File Format,Alpha Transparency,Per-format film-transparent flag for PNG, EXR, and ProRes MOV
+Audio,Audio Codec Dropdown,Select audio codec per camera (No Audio / MP3 / AAC / PCM / etc.)
+Audio,Audio Bitrate,Per-camera audio bitrate shown when a codec other than No Audio is selected
+Audio,Default MP3,New cameras default to MP3 audio for video formats
+Bidirectional Sync,Cameraide → Native,On camera switch, Cameraide settings are pushed to Blender's native render panel
+Bidirectional Sync,Native → Cameraide (Format),Changes made in Blender's native Output panel sync back to the active camera's Cameraide settings
+Bidirectional Sync,Native → Cameraide (Resolution),Changes to native resolution/percentage sync back to the active camera's Cameraide settings
+Bidirectional Sync,Native → Cameraide (Transparency),Changes to native film-transparent sync back to the active camera's format-specific alpha property
+Bidirectional Sync,Feedback Loop Prevention,_syncing_native flag and two-callback architecture prevent infinite update loops
+Render Operators,Snapshot Viewport,Render a single still of the active/scene camera using the viewport renderer
+Render Operators,Snapshot Normal,Render a single still of the active/scene camera using the full renderer
+Render Operators,Playblast Viewport,Render the full animation of the active/scene camera using the viewport renderer
+Render Operators,Playblast Normal,Render the full animation of the active/scene camera using the full renderer
+Render Operators,Render All Viewport,Batch-render every Cameraide camera sequentially using the viewport renderer
+Render Operators,Render All Normal,Batch-render every Cameraide camera sequentially using the full renderer
+Render Operators,Always-Visible Buttons,Render buttons are always shown (not behind a collapsible group) when settings are active
+Render Operators,Two-Column Layout,Viewport renders on the left column; Normal renders on the right column
+Batch Render,Queue Building,Batch operators build a queue of (camera, start, end) tuples from all Cameraide cameras
+Batch Render,Sequential Job Execution,Jobs are dispatched one at a time via timers to avoid blocking Blender's event loop
+Batch Render,Handler Isolation,Cameraide's depsgraph handler is disabled during batch runs to prevent interference
+Batch Render,Settings Restore,Native render settings are restored after every render via RenderCleanupManager

@@ -89,7 +89,6 @@ def apply_cameraide_to_native(cam, scene):
             if settings.audio_codec != 'NONE':
                 ffmpeg.audio_bitrate = settings.audio_bitrate
 
-        print(f"[Cameraide] → native pushed: cam={cam.name}  fmt={fmt}")
     finally:
         _syncing_native = False
 
@@ -200,13 +199,9 @@ def _on_native_format_changed():
     if cam is None:
         return
 
-    native_fmt = scene.render.image_settings.file_format
-    print(f"[Cameraide] msgbus FORMAT: native={native_fmt}  cam={cam.name}")
-
     _syncing_native = True
     try:
         _sync_native_to_cameraide(cam, scene)
-        print(f"[Cameraide] format sync done → {cam.data.cameraide_settings.output_format}")
     finally:
         _syncing_native = False
 
@@ -219,15 +214,10 @@ def _on_native_resolution_changed():
     if cam is None:
         return
 
-    print(f"[Cameraide] msgbus RESOLUTION/TRANSPARENCY  cam={cam.name}")
-
     _syncing_native = True
     try:
         _sync_native_resolution_to_cameraide(cam, scene)
         _sync_native_film_transparent_to_cameraide(cam, scene)
-        print(f"[Cameraide] resolution sync done: "
-              f"{scene.render.resolution_x}x{scene.render.resolution_y}"
-              f" @{scene.render.resolution_percentage}%")
     finally:
         _syncing_native = False
 
@@ -315,7 +305,6 @@ def on_active_camera_changed(scene):
     update_viewport_resolution(bpy.context)
 
     if camera_switched:
-        print(f"[Cameraide] Camera switched → {current_camera.name}")
         apply_cameraide_to_native(current_camera, scene)
 
 
@@ -344,7 +333,6 @@ def on_befriend_toggle(camera_obj):
                     apply_frame_range_to_scene(camera_obj, scene)
 
             update_camera_name(camera_obj, True)
-            print(f"[Cameraide] Befriended {camera_obj.name} — pushing to native")
             apply_cameraide_to_native(camera_obj, scene)
         else:
             frame_manager.store_range(camera_obj)
@@ -404,7 +392,6 @@ def _subscribe_msgbus():
         notify=_on_native_resolution_changed,
     )
 
-    print("[Cameraide] msgbus subscriptions registered (format + resolution/transparency)")
 
 
 def register():
