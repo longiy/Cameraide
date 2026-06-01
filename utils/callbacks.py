@@ -260,6 +260,10 @@ def update_viewport_resolution(context):
 def update_frame_start(self, context):
     if frame_manager.is_updating:
         return
+    # Clamp start to at most end - 1
+    if self.frame_start >= self.frame_end:
+        self.frame_start = self.frame_end - 1
+        return
     camera = context.scene.camera
     if not camera or camera.data.cameraide_settings != self:
         return
@@ -271,6 +275,10 @@ def update_frame_start(self, context):
 
 def update_frame_end(self, context):
     if frame_manager.is_updating:
+        return
+    # Clamp end to at least start + 1
+    if self.frame_end <= self.frame_start:
+        self.frame_end = self.frame_start + 1
         return
     camera = context.scene.camera
     if not camera or camera.data.cameraide_settings != self:
