@@ -150,44 +150,87 @@ def _sync_native_to_cameraide(cam, scene):
         else:
             settings.use_audio = False
 
-    # Resolution (always sync regardless of format)
+def _sync_native_resolution_to_cameraide(cam, scene):
+    """Sync only resolution from native → cameraide."""
+    settings = cam.data.cameraide_settings
+    render = scene.render
     settings.resolution_x = render.resolution_x
     settings.resolution_y = render.resolution_y
     settings.resolution_percentage = render.resolution_percentage
 
 
+def _sync_native_film_transparent_to_cameraide(cam, scene):
+    """Sync only film_transparent from native → cameraide (per active format)."""
+    settings = cam.data.cameraide_settings
+    val = scene.render.film_transparent
+    fmt = settings.output_format
+    if fmt == 'PNG':
+        settings.png_film_transparent = val
+    elif fmt == 'OPEN_EXR':
+        settings.exr_film_transparent = val
+    elif fmt == 'PRORES_MOV':
+        settings.prores_film_transparent = val
+
+
 # ---------------------------------------------------------------------------
-# msgbus callback — fires ONLY when native render properties actually change
+# Two separate msgbus callbacks — format/codec vs resolution/transparency
+# Keeping them apart prevents update_viewport_resolution (which writes
+# RenderSettings.resolution_*) from ever triggering a format revert.
 # ---------------------------------------------------------------------------
 
-def _on_native_render_changed():
-    """msgbus subscriber: called when Blender's render/image/ffmpeg settings change.
-    Ignored when cameraide itself is writing (_syncing_native).
-    """
-    global _syncing_native
+def _guard_check():
+    """Shared early-exit logic. Returns (cam, scene) or (None, None)."""
     if _syncing_native:
-        return
-
+        return None, None
     from .render_manager import RenderCleanupManager
     if RenderCleanupManager._original_settings is not None:
-        return  # Mid-render — cameraide controls native, don't read back
-
+        return None, None
     context = bpy.context
     if not context or not hasattr(context, 'scene'):
-        return
-
+        return None, None
     scene = context.scene
     cam = scene.camera
     if not cam or not cam.data.cameraide_settings.use_custom_settings:
+        return None, None
+    return cam, scene
+
+
+def _on_native_format_changed():
+    """Fired by ImageFormatSettings and FFmpegSettings msgbus.
+    Syncs format/codec/quality/audio — never touches resolution."""
+    global _syncing_native
+    cam, scene = _guard_check()
+    if cam is None:
         return
 
     native_fmt = scene.render.image_settings.file_format
-    print(f"[Cameraide] msgbus fired: native fmt={native_fmt}  cam={cam.name}")
+    print(f"[Cameraide] msgbus FORMAT: native={native_fmt}  cam={cam.name}")
 
     _syncing_native = True
     try:
         _sync_native_to_cameraide(cam, scene)
-        print(f"[Cameraide] native → cameraide sync done: output_format={cam.data.cameraide_settings.output_format}")
+        print(f"[Cameraide] format sync done → {cam.data.cameraide_settings.output_format}")
+    finally:
+        _syncing_native = False
+
+
+def _on_native_resolution_changed():
+    """Fired by RenderSettings.resolution_* and film_transparent msgbus.
+    Syncs only those values — never touches output_format."""
+    global _syncing_native
+    cam, scene = _guard_check()
+    if cam is None:
+        return
+
+    print(f"[Cameraide] msgbus RESOLUTION/TRANSPARENCY  cam={cam.name}")
+
+    _syncing_native = True
+    try:
+        _sync_native_resolution_to_cameraide(cam, scene)
+        _sync_native_film_transparent_to_cameraide(cam, scene)
+        print(f"[Cameraide] resolution sync done: "
+              f"{scene.render.resolution_x}x{scene.render.resolution_y}"
+              f" @{scene.render.resolution_percentage}%")
     finally:
         _syncing_native = False
 
@@ -327,19 +370,36 @@ def on_sync_toggle(camera_obj):
 # ---------------------------------------------------------------------------
 
 def _subscribe_msgbus():
-    """Subscribe to native Blender render property changes via msgbus."""
-    for rna_type in (
-        bpy.types.ImageFormatSettings,   # format, codec, depth, compression, quality
-        bpy.types.FFmpegSettings,         # video/audio codec, bitrate, gopsize
-        bpy.types.RenderSettings,         # resolution_x/y/percentage, film_transparent, etc.
-    ):
+    """Subscribe to native Blender render property changes via msgbus.
+
+    Two separate callbacks:
+    - _on_native_format_changed  → ImageFormatSettings + FFmpegSettings
+    - _on_native_resolution_changed → specific RenderSettings properties only
+
+    Keeping them separate ensures that update_viewport_resolution writing
+    resolution never accidentally triggers a format sync.
+    """
+    # Format / codec callbacks
+    for rna_type in (bpy.types.ImageFormatSettings, bpy.types.FFmpegSettings):
         bpy.msgbus.subscribe_rna(
             key=rna_type,
             owner=_msgbus_owner,
             args=(),
-            notify=_on_native_render_changed,
+            notify=_on_native_format_changed,
         )
-    print("[Cameraide] msgbus subscriptions registered")
+
+    # Resolution + transparency — full RenderSettings type is fine here because
+    # _on_native_resolution_changed never touches output_format, so even if it
+    # fires from update_viewport_resolution writes it only does a resolution
+    # no-op (native == cameraide at that point).
+    bpy.msgbus.subscribe_rna(
+        key=bpy.types.RenderSettings,
+        owner=_msgbus_owner,
+        args=(),
+        notify=_on_native_resolution_changed,
+    )
+
+    print("[Cameraide] msgbus subscriptions registered (format + resolution/transparency)")
 
 
 def register():
