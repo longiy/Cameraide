@@ -3,55 +3,22 @@ import bpy
 from .frame_manager import frame_manager, prevent_recursive_update
 from .camera_names import update_camera_name
 
-# Guards against feedback loops
+# Set True while cameraide is writing to native Blender settings so the
+# msgbus listener ignores those writes (they're not user edits).
 _syncing_native = False
 
-# Tracks what cameraide last wrote to Blender's native render panel, per camera name.
-# The handler only syncs native → cameraide when native DIVERGES from this snapshot,
-# meaning the user actually touched the native panel (not the cameraide panel).
-_native_snapshot = {}
+# A single owner object keeps all msgbus subscriptions alive.
+_msgbus_owner = object()
 
 
 # ---------------------------------------------------------------------------
-# Native ↔ Cameraide helpers
+# Cameraide → Native  (push cameraide settings into Blender's render panel)
 # ---------------------------------------------------------------------------
-
-def _get_native_state(scene):
-    """Read a comparable snapshot of current native render settings."""
-    render = scene.render
-    img = render.image_settings
-    state = {
-        'file_format': img.file_format,
-        'film_transparent': render.film_transparent,
-        'resolution_x': render.resolution_x,
-        'resolution_y': render.resolution_y,
-        'resolution_percentage': render.resolution_percentage,
-    }
-    if img.file_format in {'PNG', 'OPEN_EXR'}:
-        state['color_depth'] = getattr(img, 'color_depth', None)
-    if img.file_format == 'PNG':
-        state['compression'] = getattr(img, 'compression', None)
-    if img.file_format == 'JPEG':
-        state['quality'] = getattr(img, 'quality', None)
-    if img.file_format == 'OPEN_EXR':
-        state['exr_codec'] = getattr(img, 'exr_codec', None)
-    if img.file_format == 'FFMPEG':
-        ffmpeg = render.ffmpeg
-        state['ffmpeg_format'] = ffmpeg.format
-        state['ffmpeg_codec'] = ffmpeg.codec
-        state['video_bitrate'] = ffmpeg.video_bitrate
-        state['audio_codec'] = ffmpeg.audio_codec
-        state['audio_bitrate'] = ffmpeg.audio_bitrate
-        state['gopsize'] = ffmpeg.gopsize
-        state['constant_rate_factor'] = getattr(ffmpeg, 'constant_rate_factor', None)
-    return state
-
 
 def apply_cameraide_to_native(cam, scene):
-    """Push active cameraide camera settings into Blender's native render panel.
-    Call this whenever the active cameraide camera changes so the native panel
-    reflects its per-camera settings.  Records a snapshot so the handler can
-    tell when the USER subsequently edits native (vs. cameraide editing it).
+    """Push this camera's cameraide settings into Blender's native render panel.
+    Called on camera switch so the native panel always reflects the active camera.
+    Sets _syncing_native so msgbus ignores the writes.
     """
     global _syncing_native
     if _syncing_native:
@@ -100,19 +67,9 @@ def apply_cameraide_to_native(cam, scene):
             if fmt == 'H264_MP4':
                 ffmpeg.format = 'MPEG4'
                 ffmpeg.codec = 'H264'
-                if hasattr(ffmpeg, 'constant_rate_factor'):
-                    ffmpeg.constant_rate_factor = settings.video_quality
-                ffmpeg.video_bitrate = settings.video_bitrate
-                ffmpeg.gopsize = settings.video_gopsize
-                render.film_transparent = False
             elif fmt == 'H264_MKV':
                 ffmpeg.format = 'MKV'
                 ffmpeg.codec = 'H264'
-                if hasattr(ffmpeg, 'constant_rate_factor'):
-                    ffmpeg.constant_rate_factor = settings.video_quality
-                ffmpeg.video_bitrate = settings.video_bitrate
-                ffmpeg.gopsize = settings.video_gopsize
-                render.film_transparent = False
             elif fmt == 'PRORES_MOV':
                 ffmpeg.format = 'QUICKTIME'
                 ffmpeg.codec = 'PRORES'
@@ -121,45 +78,50 @@ def apply_cameraide_to_native(cam, scene):
                 ffmpeg.gopsize = 1
                 render.film_transparent = settings.prores_film_transparent
 
-            if settings.use_audio and settings.audio_codec != 'NONE':
-                ffmpeg.audio_codec = settings.audio_codec
-                ffmpeg.audio_bitrate = settings.audio_bitrate
-            else:
-                ffmpeg.audio_codec = 'NONE'
+            if fmt in {'H264_MP4', 'H264_MKV'}:
+                if hasattr(ffmpeg, 'constant_rate_factor'):
+                    ffmpeg.constant_rate_factor = settings.video_quality
+                ffmpeg.video_bitrate = settings.video_bitrate
+                ffmpeg.gopsize = settings.video_gopsize
+                render.film_transparent = False
 
-        _native_snapshot[cam.name] = _get_native_state(scene)
+            ffmpeg.audio_codec = settings.audio_codec if (settings.use_audio and settings.audio_codec != 'NONE') else 'NONE'
+            if settings.use_audio and settings.audio_codec != 'NONE':
+                ffmpeg.audio_bitrate = settings.audio_bitrate
+
+        print(f"[Cameraide] → native pushed: cam={cam.name}  fmt={fmt}")
     finally:
         _syncing_native = False
 
 
+# ---------------------------------------------------------------------------
+# Native → Cameraide  (read native panel back into cameraide settings)
+# ---------------------------------------------------------------------------
+
 def _sync_native_to_cameraide(cam, scene):
-    """Copy current native settings into the cameraide camera's properties."""
+    """Read current native render settings into the camera's cameraide properties."""
     settings = cam.data.cameraide_settings
     render = scene.render
     img = render.image_settings
-    fmt = img.file_format
+    native_fmt = img.file_format
 
-    settings.resolution_x = render.resolution_x
-    settings.resolution_y = render.resolution_y
-    settings.resolution_percentage = render.resolution_percentage
-
-    if fmt == 'PNG':
+    if native_fmt == 'PNG':
         settings.output_format = 'PNG'
         settings.png_color_depth = getattr(img, 'color_depth', '8')
         settings.png_compression = getattr(img, 'compression', 15)
         settings.png_film_transparent = render.film_transparent
 
-    elif fmt == 'JPEG':
+    elif native_fmt == 'JPEG':
         settings.output_format = 'JPEG'
         settings.jpeg_quality = getattr(img, 'quality', 90)
 
-    elif fmt == 'OPEN_EXR':
+    elif native_fmt == 'OPEN_EXR':
         settings.output_format = 'OPEN_EXR'
         settings.exr_color_depth = getattr(img, 'color_depth', '16')
         settings.exr_codec = getattr(img, 'exr_codec', 'ZIP')
         settings.exr_film_transparent = render.film_transparent
 
-    elif fmt == 'FFMPEG':
+    elif native_fmt == 'FFMPEG':
         ffmpeg = render.ffmpeg
         if ffmpeg.format == 'MPEG4' and ffmpeg.codec == 'H264':
             settings.output_format = 'H264_MP4'
@@ -188,35 +150,79 @@ def _sync_native_to_cameraide(cam, scene):
         else:
             settings.use_audio = False
 
+    # Resolution (always sync regardless of format)
+    settings.resolution_x = render.resolution_x
+    settings.resolution_y = render.resolution_y
+    settings.resolution_percentage = render.resolution_percentage
+
 
 # ---------------------------------------------------------------------------
-# Resolution live-update (existing)
+# msgbus callback — fires ONLY when native render properties actually change
+# ---------------------------------------------------------------------------
+
+def _on_native_render_changed():
+    """msgbus subscriber: called when Blender's render/image/ffmpeg settings change.
+    Ignored when cameraide itself is writing (_syncing_native).
+    """
+    global _syncing_native
+    if _syncing_native:
+        return
+
+    from .render_manager import RenderCleanupManager
+    if RenderCleanupManager._original_settings is not None:
+        return  # Mid-render — cameraide controls native, don't read back
+
+    context = bpy.context
+    if not context or not hasattr(context, 'scene'):
+        return
+
+    scene = context.scene
+    cam = scene.camera
+    if not cam or not cam.data.cameraide_settings.use_custom_settings:
+        return
+
+    native_fmt = scene.render.image_settings.file_format
+    print(f"[Cameraide] msgbus fired: native fmt={native_fmt}  cam={cam.name}")
+
+    _syncing_native = True
+    try:
+        _sync_native_to_cameraide(cam, scene)
+        print(f"[Cameraide] native → cameraide sync done: output_format={cam.data.cameraide_settings.output_format}")
+    finally:
+        _syncing_native = False
+
+
+# ---------------------------------------------------------------------------
+# Resolution live push (cameraide panel → native, real-time)
 # ---------------------------------------------------------------------------
 
 def update_viewport_resolution(context):
-    """Update viewport resolution"""
-    if not context.scene.camera or not context.scene.camera.data.cameraide_settings.use_custom_settings:
+    """Write active cameraide camera resolution into native Blender render settings."""
+    global _syncing_native
+    cam = context.scene.camera
+    if not cam or not cam.data.cameraide_settings.use_custom_settings:
         return
 
-    settings = context.scene.camera.data.cameraide_settings
-    context.scene.render.resolution_x = settings.resolution_x
-    context.scene.render.resolution_y = settings.resolution_y
-    context.scene.render.resolution_percentage = settings.resolution_percentage
+    settings = cam.data.cameraide_settings
+    _syncing_native = True  # suppress msgbus from treating this as a user edit
+    try:
+        context.scene.render.resolution_x = settings.resolution_x
+        context.scene.render.resolution_y = settings.resolution_y
+        context.scene.render.resolution_percentage = settings.resolution_percentage
+    finally:
+        _syncing_native = False
 
 
 # ---------------------------------------------------------------------------
-# Frame range update callbacks (properties.py hooks)
+# Frame range update callbacks (hooked from properties.py)
 # ---------------------------------------------------------------------------
 
 def update_frame_start(self, context):
-    """Frame start update callback"""
     if frame_manager.is_updating:
         return
-
     camera = context.scene.camera
     if not camera or camera.data.cameraide_settings != self:
         return
-
     if self.use_custom_settings and self.sync_frame_range and self.frame_range_mode == 'PER_CAMERA':
         with prevent_recursive_update():
             context.scene.frame_start = self.frame_start
@@ -224,14 +230,11 @@ def update_frame_start(self, context):
 
 
 def update_frame_end(self, context):
-    """Frame end update callback"""
     if frame_manager.is_updating:
         return
-
     camera = context.scene.camera
     if not camera or camera.data.cameraide_settings != self:
         return
-
     if self.use_custom_settings and self.sync_frame_range and self.frame_range_mode == 'PER_CAMERA':
         with prevent_recursive_update():
             context.scene.frame_end = self.frame_end
@@ -239,13 +242,11 @@ def update_frame_end(self, context):
 
 
 # ---------------------------------------------------------------------------
-# Persistent handlers
+# Persistent depsgraph handler — camera switching only
 # ---------------------------------------------------------------------------
 
 @bpy.app.handlers.persistent
 def on_active_camera_changed(scene):
-    """Handle camera switching — apply frame range sync and push cameraide
-    settings into the native Blender render panel."""
     if frame_manager.is_updating:
         return
 
@@ -253,8 +254,9 @@ def on_active_camera_changed(scene):
     if not current_camera or current_camera.type != 'CAMERA':
         return
 
-    settings = current_camera.data.cameraide_settings
+    camera_switched = (frame_manager.previous_camera != current_camera)
 
+    settings = current_camera.data.cameraide_settings
     if settings.use_custom_settings and settings.sync_frame_range and settings.frame_range_mode == 'PER_CAMERA':
         with prevent_recursive_update():
             scene.frame_start = settings.frame_start
@@ -264,50 +266,9 @@ def on_active_camera_changed(scene):
     frame_manager.previous_camera = current_camera
     update_viewport_resolution(bpy.context)
 
-    # Push this camera's settings into the native panel and record the snapshot
-    apply_cameraide_to_native(current_camera, scene)
-
-
-@bpy.app.handlers.persistent
-def on_native_render_settings_changed(scene):
-    """Sync native Blender render panel → active cameraide camera, but ONLY
-    when native actually diverged from what cameraide last wrote there.
-
-    This means:
-    - Cameraide panel edits: native stays == snapshot → no sync, cameraide wins.
-    - Native panel edits:    native != snapshot       → sync to cameraide + refresh snapshot.
-    """
-    global _syncing_native
-    if _syncing_native or frame_manager.is_updating:
-        return
-
-    from .render_manager import RenderCleanupManager
-    if RenderCleanupManager._original_settings is not None:
-        return  # Mid-render; cameraide is controlling native — don't read back
-
-    cam = scene.camera
-    if not cam or not cam.data.cameraide_settings.use_custom_settings:
-        return
-
-    snapshot = _native_snapshot.get(cam.name)
-    if snapshot is None:
-        # We haven't established a baseline for this camera yet; do it now
-        apply_cameraide_to_native(cam, scene)
-        return
-
-    current = _get_native_state(scene)
-    if current == snapshot:
-        return  # Nothing changed in native
-
-    # Native diverged — user edited the native panel; propagate to cameraide
-    _syncing_native = True
-    try:
-        _sync_native_to_cameraide(cam, scene)
-        # After syncing, push cameraide back to native so snapshot is fresh
-        # (needed because _sync writes to settings, not to native)
-        _native_snapshot[cam.name] = current
-    finally:
-        _syncing_native = False
+    if camera_switched:
+        print(f"[Cameraide] Camera switched → {current_camera.name}")
+        apply_cameraide_to_native(current_camera, scene)
 
 
 # ---------------------------------------------------------------------------
@@ -315,7 +276,6 @@ def on_native_render_settings_changed(scene):
 # ---------------------------------------------------------------------------
 
 def on_befriend_toggle(camera_obj):
-    """Handle befriend toggle"""
     if frame_manager.is_updating or not camera_obj:
         return
 
@@ -336,7 +296,7 @@ def on_befriend_toggle(camera_obj):
                     apply_frame_range_to_scene(camera_obj, scene)
 
             update_camera_name(camera_obj, True)
-            # Push new cameraide settings into native panel
+            print(f"[Cameraide] Befriended {camera_obj.name} — pushing to native")
             apply_cameraide_to_native(camera_obj, scene)
         else:
             frame_manager.store_range(camera_obj)
@@ -346,7 +306,6 @@ def on_befriend_toggle(camera_obj):
 
 
 def on_sync_toggle(camera_obj):
-    """Handle sync toggle"""
     if frame_manager.is_updating or not camera_obj:
         return
 
@@ -367,22 +326,36 @@ def on_sync_toggle(camera_obj):
 # Register / unregister
 # ---------------------------------------------------------------------------
 
+def _subscribe_msgbus():
+    """Subscribe to native Blender render property changes via msgbus."""
+    for rna_type in (
+        bpy.types.ImageFormatSettings,   # format, codec, depth, compression, quality
+        bpy.types.FFmpegSettings,         # video/audio codec, bitrate, gopsize
+        bpy.types.RenderSettings,         # resolution_x/y/percentage, film_transparent, etc.
+    ):
+        bpy.msgbus.subscribe_rna(
+            key=rna_type,
+            owner=_msgbus_owner,
+            args=(),
+            notify=_on_native_render_changed,
+        )
+    print("[Cameraide] msgbus subscriptions registered")
+
+
 def register():
     frame_manager.clear()
-    _native_snapshot.clear()
     if on_active_camera_changed not in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.append(on_active_camera_changed)
-    if on_native_render_settings_changed not in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.append(on_native_render_settings_changed)
+    # msgbus must be set up after a short delay because Blender's RNA isn't
+    # fully ready at register time — use a one-shot timer
+    bpy.app.timers.register(_subscribe_msgbus, first_interval=0.1)
 
 
 def unregister():
     frame_manager.clear()
-    _native_snapshot.clear()
+    bpy.msgbus.clear_by_owner(_msgbus_owner)
     if on_active_camera_changed in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(on_active_camera_changed)
-    if on_native_render_settings_changed in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.remove(on_native_render_settings_changed)
 
 
 __all__ = [
@@ -390,7 +363,6 @@ __all__ = [
     'update_frame_start',
     'update_frame_end',
     'on_active_camera_changed',
-    'on_native_render_settings_changed',
     'on_befriend_toggle',
     'on_sync_toggle',
     'apply_cameraide_to_native',
