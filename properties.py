@@ -109,15 +109,15 @@ class CameraideSettings(PropertyGroup):
     )
 
     output_subfolder: StringProperty(
-        name="Folder",
+        name="Subfolder",
         description="Subfolder name (will be created under the output path)",
-        default="Folder"
+        default="subfolder"
     )
 
     output_filename: StringProperty(
-        name="Name",
+        name="Filename",
         description="Output file name",
-        default="Name"
+        default="filename"
     )
     
     output_format: EnumProperty(

@@ -140,8 +140,6 @@ class NormalBatchRender:
                 bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
 
         except Exception:
-            import traceback
-            traceback.print_exc()
             self.cleanup()
 
         return None
