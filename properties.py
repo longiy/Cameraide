@@ -271,58 +271,14 @@ class CameraideSettings(PropertyGroup):
         description="Synchronize with 'Burn Into Image' metadata setting",
         default=False
     )
-    png_film_transparent: BoolProperty(
+    film_transparent: BoolProperty(
         name="Alpha Transparency",
-        description="Render with transparent background (PNG)",
+        description="Render with transparent background (disables world rendering). "
+                    "Formats without an alpha channel render the background black",
         default=True
     )
-    exr_film_transparent: BoolProperty(
-        name="Alpha Transparency",
-        description="Render with transparent background (EXR)",
-        default=True
-    )
-    prores_film_transparent: BoolProperty(
-        name="Alpha Transparency",
-        description="Render with transparent background (ProRes MOV)",
-        default=True
-    )
-    
-    # UI Display Properties
-    show_resolution_settings: BoolProperty(
-        name="Show Resolution Settings",
-        description="Show or hide resolution settings",
-        default=True
-    )
-    show_frame_range: BoolProperty(
-        name="Show Frame Range",
-        description="Show or hide frame range settings",
-        default=True
-    )
-    show_file_output: BoolProperty(
-        name="Show File Output",
-        description="Show or hide file output settings",
-        default=True
-    )
-    show_format_settings: BoolProperty(
-        name="Show Format Settings",
-        description="Show or hide format specific settings",
-        default=True
-    )
-    show_extra_settings: BoolProperty(
-        name="Show Extra Settings",
-        description="Show or hide extra settings",
-        default=False
-    )
-    show_file_output_advanced: BoolProperty(
-        name="Advanced",
-        description="Show or hide advanced file output options",
-        default=False
-    )
-    show_format_advanced: BoolProperty(
-        name="Advanced",
-        description="Show or hide advanced format settings",
-        default=False
-    )
+    # NOTE: panel open/close state lives on bpy.types.Scene (see
+    # panels/sidebar_panel.py) so it is shared across all cameras.
 
 
 def register():

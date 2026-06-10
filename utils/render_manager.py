@@ -100,11 +100,14 @@ class RenderCleanupManager:
         cls._original_settings = None
     
     @classmethod
-    def apply_camera_settings(cls, context, cam_obj, frame_range=None, force_image_format=False):
+    def apply_camera_settings(cls, context, cam_obj, frame_range=None,
+                              force_image_format=False, apply_frame_range=True):
         """Apply camera settings to render
-        
+
         Args:
             force_image_format: If True, force PNG for single-frame renders (snapshots)
+            apply_frame_range: If False, leave scene frame range/step untouched
+                (snapshots render a single frame and must not move the timeline)
         """
         scene = context.scene
         settings = cam_obj.data.cameraide_settings
@@ -134,27 +137,30 @@ class RenderCleanupManager:
         else:
             scene.render.resolution_percentage = percentage
             
-        # Frame range
-        if frame_range:
-            scene.frame_start = frame_range[0]
-            scene.frame_end = frame_range[1]
-        else:
-            from .marker_detection import get_effective_frame_range
-            start, end = get_effective_frame_range(cam_obj)
-            scene.frame_start = start
-            scene.frame_end = end
-        
-        scene.frame_step = settings.frame_step
+        # Frame range:
+        # - explicit frame_range (batch jobs) wins
+        # - marker mode renders the marker range
+        # - per-camera with sync ON renders the cameraide range
+        # - per-camera with sync OFF renders whatever the timeline currently shows
+        if apply_frame_range:
+            if frame_range:
+                scene.frame_start = frame_range[0]
+                scene.frame_end = frame_range[1]
+                scene.frame_step = settings.frame_step
+            elif settings.frame_range_mode == 'TIMELINE_MARKERS':
+                from .marker_detection import get_effective_frame_range
+                start, end = get_effective_frame_range(cam_obj)
+                scene.frame_start = start
+                scene.frame_end = end
+                scene.frame_step = settings.frame_step
+            elif settings.sync_frame_range:
+                scene.frame_start = settings.frame_start
+                scene.frame_end = settings.frame_end
+                scene.frame_step = settings.frame_step
+
         scene.render.resolution_x = res_x
         scene.render.resolution_y = res_y
-        if settings.output_format == 'PNG' or forced_format == 'PNG':
-            scene.render.film_transparent = settings.png_film_transparent
-        elif settings.output_format == 'OPEN_EXR':
-            scene.render.film_transparent = settings.exr_film_transparent
-        elif settings.output_format == 'PRORES_MOV':
-            scene.render.film_transparent = settings.prores_film_transparent
-        else:
-            scene.render.film_transparent = False
+        scene.render.film_transparent = settings.film_transparent
         scene.render.use_stamp = settings.burn_metadata
 
         # Output path

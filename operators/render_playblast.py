@@ -2,7 +2,15 @@
 import bpy
 from bpy.types import Operator
 from ..utils.render_manager import RenderCleanupManager
+from ..utils.callbacks import apply_cameraide_to_native
 from ..render.handlers import add_render_handlers, remove_render_handlers
+
+
+def _get_target_camera(context):
+    if (context.active_object and context.active_object.type == 'CAMERA'
+            and context.active_object.data.cameraide_settings.use_custom_settings):
+        return context.active_object
+    return context.scene.camera
 
 
 class CAMERA_OT_render_selected_viewport(Operator):
@@ -17,37 +25,24 @@ class CAMERA_OT_render_selected_viewport(Operator):
         return cam is not None and cam.data.cameraide_settings.use_custom_settings
 
     def execute(self, context):
-        if context.active_object and context.active_object.type == 'CAMERA' and context.active_object.data.cameraide_settings.use_custom_settings:
-            cam_obj = context.active_object
-        else:
-            cam_obj = context.scene.camera
-        settings = cam_obj.data.cameraide_settings
-            
+        cam_obj = _get_target_camera(context)
+
+        # OpenGL renders never fire render_complete/render_cancel handlers,
+        # so render synchronously and always restore in finally — otherwise
+        # the scene frame range and render settings stay modified.
+        RenderCleanupManager.store_settings(context)
         try:
-            RenderCleanupManager.store_settings(context)
-            remove_render_handlers()
-            add_render_handlers()
-            
             context.scene.camera = cam_obj
-            
-            # Don't force image format - animations can use video formats
-            RenderCleanupManager.apply_camera_settings(context, cam_obj, force_image_format=False)
-            
-            for area in context.screen.areas:
-                if area.type == 'VIEW_3D':
-                    override = context.copy()
-                    override['area'] = area
-                    bpy.ops.render.opengl('INVOKE_DEFAULT', animation=True, 
-                                         sequencer=False, write_still=False, view_context=True)
-                    break
-            
+            RenderCleanupManager.apply_camera_settings(context, cam_obj)
+            bpy.ops.render.opengl(animation=True, sequencer=False,
+                                  write_still=False, view_context=True)
             return {'FINISHED'}
-            
         except Exception as e:
-            self.report({'ERROR'}, f"Render failed: {str(e)}")
-            RenderCleanupManager.restore_settings(context)
-            remove_render_handlers()
+            self.report({'ERROR'}, f"Render failed: {e}")
             return {'CANCELLED'}
+        finally:
+            RenderCleanupManager.restore_settings(context)
+            apply_cameraide_to_native(context.scene.camera, context.scene)
 
 
 class CAMERA_OT_render_selected_normal(Operator):
@@ -62,25 +57,25 @@ class CAMERA_OT_render_selected_normal(Operator):
         return cam is not None and cam.data.cameraide_settings.use_custom_settings
 
     def execute(self, context):
-        if context.active_object and context.active_object.type == 'CAMERA' and context.active_object.data.cameraide_settings.use_custom_settings:
-            cam_obj = context.active_object
-        else:
-            cam_obj = context.scene.camera
-        settings = cam_obj.data.cameraide_settings
-            
+        cam_obj = _get_target_camera(context)
+
         try:
             RenderCleanupManager.store_settings(context)
+            # Normal renders do fire render_complete/render_cancel — the
+            # handlers restore settings when the render window finishes.
+            remove_render_handlers()
+            add_render_handlers()
+
             context.scene.camera = cam_obj
-            
-            # Don't force image format - animations can use video formats
-            RenderCleanupManager.apply_camera_settings(context, cam_obj, force_image_format=False)
-            
+            RenderCleanupManager.apply_camera_settings(context, cam_obj)
+
             bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
             return {'FINISHED'}
-            
+
         except Exception as e:
-            self.report({'ERROR'}, f"Render failed: {str(e)}")
+            self.report({'ERROR'}, f"Render failed: {e}")
             RenderCleanupManager.restore_settings(context)
+            remove_render_handlers()
             return {'CANCELLED'}
 
 

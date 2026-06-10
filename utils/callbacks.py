@@ -36,6 +36,7 @@ def apply_cameraide_to_native(cam, scene):
         render.resolution_x = settings.resolution_x
         render.resolution_y = settings.resolution_y
         render.resolution_percentage = settings.resolution_percentage
+        render.film_transparent = settings.film_transparent
 
         if fmt == 'PNG':
             img.media_type = 'IMAGE'
@@ -43,14 +44,12 @@ def apply_cameraide_to_native(cam, scene):
             img.color_mode = 'RGBA'
             img.color_depth = settings.png_color_depth
             img.compression = settings.png_compression
-            render.film_transparent = settings.png_film_transparent
 
         elif fmt == 'JPEG':
             img.media_type = 'IMAGE'
             img.file_format = 'JPEG'
             img.color_mode = 'RGB'
             img.quality = settings.jpeg_quality
-            render.film_transparent = False
 
         elif fmt == 'OPEN_EXR':
             img.media_type = 'IMAGE'
@@ -58,7 +57,6 @@ def apply_cameraide_to_native(cam, scene):
             img.color_mode = 'RGBA'
             img.color_depth = settings.exr_color_depth
             img.exr_codec = settings.exr_codec
-            render.film_transparent = settings.exr_film_transparent
 
         elif fmt in {'H264_MP4', 'H264_MKV', 'PRORES_MOV'}:
             img.media_type = 'VIDEO'
@@ -76,14 +74,12 @@ def apply_cameraide_to_native(cam, scene):
                 if hasattr(ffmpeg, 'constant_rate_factor'):
                     ffmpeg.constant_rate_factor = 'PERC_LOSSLESS'
                 ffmpeg.gopsize = 1
-                render.film_transparent = settings.prores_film_transparent
 
             if fmt in {'H264_MP4', 'H264_MKV'}:
                 if hasattr(ffmpeg, 'constant_rate_factor'):
                     ffmpeg.constant_rate_factor = settings.video_quality
                 ffmpeg.video_bitrate = settings.video_bitrate
                 ffmpeg.gopsize = settings.video_gopsize
-                render.film_transparent = False
 
             ffmpeg.audio_codec = settings.audio_codec if settings.audio_codec != 'NONE' else 'NONE'
             if settings.audio_codec != 'NONE':
@@ -108,7 +104,6 @@ def _sync_native_to_cameraide(cam, scene):
         settings.output_format = 'PNG'
         settings.png_color_depth = getattr(img, 'color_depth', '8')
         settings.png_compression = getattr(img, 'compression', 15)
-        settings.png_film_transparent = render.film_transparent
 
     elif native_fmt == 'JPEG':
         settings.output_format = 'JPEG'
@@ -118,7 +113,6 @@ def _sync_native_to_cameraide(cam, scene):
         settings.output_format = 'OPEN_EXR'
         settings.exr_color_depth = getattr(img, 'color_depth', '16')
         settings.exr_codec = getattr(img, 'exr_codec', 'ZIP')
-        settings.exr_film_transparent = render.film_transparent
 
     elif native_fmt == 'FFMPEG':
         ffmpeg = render.ffmpeg
@@ -128,7 +122,6 @@ def _sync_native_to_cameraide(cam, scene):
             settings.output_format = 'H264_MKV'
         elif ffmpeg.format == 'QUICKTIME':
             settings.output_format = 'PRORES_MOV'
-            settings.prores_film_transparent = render.film_transparent
 
         if settings.output_format in {'H264_MP4', 'H264_MKV'}:
             if hasattr(ffmpeg, 'constant_rate_factor'):
@@ -156,16 +149,8 @@ def _sync_native_resolution_to_cameraide(cam, scene):
 
 
 def _sync_native_film_transparent_to_cameraide(cam, scene):
-    """Sync only film_transparent from native → cameraide (per active format)."""
-    settings = cam.data.cameraide_settings
-    val = scene.render.film_transparent
-    fmt = settings.output_format
-    if fmt == 'PNG':
-        settings.png_film_transparent = val
-    elif fmt == 'OPEN_EXR':
-        settings.exr_film_transparent = val
-    elif fmt == 'PRORES_MOV':
-        settings.prores_film_transparent = val
+    """Sync only film_transparent from native → cameraide."""
+    cam.data.cameraide_settings.film_transparent = scene.render.film_transparent
 
 
 # ---------------------------------------------------------------------------

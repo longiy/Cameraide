@@ -44,8 +44,8 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         if settings.use_custom_settings:
             self._draw_resolution_settings(layout, settings, context)
             self._draw_frame_range_settings(layout, settings, cam_obj, context)
-            self._draw_file_output_settings(layout, settings)
-            self._draw_format_settings(layout, settings)
+            self._draw_file_output_settings(layout, settings, context)
+            self._draw_format_settings(layout, settings, context)
             self._draw_render_buttons(layout)
 
     def _draw_befriend_button(self, layout, settings, camera_name):
@@ -121,15 +121,16 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
                     op.camera_name = cam_item.name
 
     def _draw_resolution_settings(self, layout, settings, context):
+        scene = context.scene
         box = layout.box()
         row = box.row(align=True)
-        row.prop(settings, "show_resolution_settings",
+        row.prop(scene, "cameraide_show_resolution",
             text="Resolution",
-            icon='TRIA_DOWN' if settings.show_resolution_settings else 'TRIA_RIGHT',
+            icon='TRIA_DOWN' if scene.cameraide_show_resolution else 'TRIA_RIGHT',
             emboss=False
         )
 
-        if not settings.show_resolution_settings:
+        if not scene.cameraide_show_resolution:
             return
 
         col = box.column(align=True)
@@ -147,15 +148,16 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         col.prop(settings, "resolution_percentage", slider=True)
 
     def _draw_frame_range_settings(self, layout, settings, cam_obj, context):
+        scene = context.scene
         box = layout.box()
         row = box.row(align=True)
-        row.prop(settings, "show_frame_range",
+        row.prop(scene, "cameraide_show_frame_range",
             text="Frame Range",
-            icon='TRIA_DOWN' if settings.show_frame_range else 'TRIA_RIGHT',
+            icon='TRIA_DOWN' if scene.cameraide_show_frame_range else 'TRIA_RIGHT',
             emboss=False
         )
 
-        if not settings.show_frame_range:
+        if not scene.cameraide_show_frame_range:
             return
 
         col = box.column(align=True)
@@ -237,25 +239,30 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
             row.prop(settings, "frame_step")
 
     def _draw_percamera_mode_ui(self, col, settings):
-        row = col.row(align=True)
+        # With sync off the render uses the timeline range, so these
+        # values are unused — gray them out.
+        sub = col.column(align=True)
+        sub.enabled = settings.sync_frame_range
+        row = sub.row(align=True)
         row.prop(settings, "frame_start")
         row.prop(settings, "frame_end")
-        col.prop(settings, "frame_step")
+        sub.prop(settings, "frame_step")
         col.operator("camera.toggle_frame_range_sync",
             text="Sync " + ("ON" if settings.sync_frame_range else "OFF"),
             icon='PREVIEW_RANGE',
             depress=settings.sync_frame_range)
 
-    def _draw_file_output_settings(self, layout, settings):
+    def _draw_file_output_settings(self, layout, settings, context):
+        scene = context.scene
         box = layout.box()
         row = box.row(align=True)
-        row.prop(settings, "show_file_output",
+        row.prop(scene, "cameraide_show_file_output",
             text="File Output",
-            icon='TRIA_DOWN' if settings.show_file_output else 'TRIA_RIGHT',
+            icon='TRIA_DOWN' if scene.cameraide_show_file_output else 'TRIA_RIGHT',
             emboss=False
         )
 
-        if not settings.show_file_output:
+        if not scene.cameraide_show_file_output:
             return
 
         col = box.column(align=True)
@@ -266,27 +273,28 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         # Advanced sub-group
         adv_box = col.box()
         adv_row = adv_box.row(align=True)
-        adv_row.prop(settings, "show_file_output_advanced",
+        adv_row.prop(scene, "cameraide_show_file_output_advanced",
             text="Advanced",
-            icon='TRIA_DOWN' if settings.show_file_output_advanced else 'TRIA_RIGHT',
+            icon='TRIA_DOWN' if scene.cameraide_show_file_output_advanced else 'TRIA_RIGHT',
             emboss=False
         )
-        if settings.show_file_output_advanced:
+        if scene.cameraide_show_file_output_advanced:
             adv_col = adv_box.column(align=True)
             adv_col.prop(settings, "overwrite_existing")
             adv_col.prop(settings, "include_camera_name")
             adv_col.prop(settings, "burn_metadata")
 
-    def _draw_format_settings(self, layout, settings):
+    def _draw_format_settings(self, layout, settings, context):
+        scene = context.scene
         box = layout.box()
         row = box.row(align=True)
-        row.prop(settings, "show_format_settings",
+        row.prop(scene, "cameraide_show_format_settings",
             text="File Format",
-            icon='TRIA_DOWN' if settings.show_format_settings else 'TRIA_RIGHT',
+            icon='TRIA_DOWN' if scene.cameraide_show_format_settings else 'TRIA_RIGHT',
             emboss=False
         )
 
-        if not settings.show_format_settings:
+        if not scene.cameraide_show_format_settings:
             return
 
         col = box.column(align=True)
@@ -308,13 +316,14 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         # Advanced sub-group for format-specific settings
         adv_box = col.box()
         adv_row = adv_box.row(align=True)
-        adv_row.prop(settings, "show_format_advanced",
+        adv_row.prop(scene, "cameraide_show_format_advanced",
             text="Advanced",
-            icon='TRIA_DOWN' if settings.show_format_advanced else 'TRIA_RIGHT',
+            icon='TRIA_DOWN' if scene.cameraide_show_format_advanced else 'TRIA_RIGHT',
             emboss=False
         )
-        if settings.show_format_advanced:
+        if scene.cameraide_show_format_advanced:
             adv_col = adv_box.column(align=True)
+            adv_col.prop(settings, "film_transparent")
             if settings.output_format == 'PNG':
                 self._draw_png_settings(adv_col, settings)
             elif settings.output_format == 'JPEG':
@@ -330,7 +339,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         row = col.row(align=True)
         row.prop(settings, "png_color_depth", text="")
         row.prop(settings, "png_compression", slider=True)
-        col.prop(settings, "png_film_transparent")
 
     def _draw_jpeg_settings(self, col, settings):
         col.prop(settings, "jpeg_quality", slider=True)
@@ -339,7 +347,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         row = col.row(align=True)
         row.prop(settings, "exr_color_depth", text="")
         row.prop(settings, "exr_codec", text="")
-        col.prop(settings, "exr_film_transparent")
 
     def _draw_h264_settings(self, col, settings):
         col.prop(settings, "video_quality", text="Quality")
@@ -357,7 +364,6 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         row.prop(settings, "audio_codec", text="")
         if settings.audio_codec != 'NONE':
             row.prop(settings, "audio_bitrate")
-        col.prop(settings, "prores_film_transparent")
 
     def _draw_render_buttons(self, layout):
         box = layout.box()
@@ -380,9 +386,22 @@ class CAMERAIDE_PT_sidebar_panel(Panel):
         col_nr.operator("camera.render_all_normal",      text="All Cameras", icon='CAMERA_DATA')
 
 
+# Panel open/close state — scene-level so it is shared across all cameras
+_UI_TOGGLES = {
+    'cameraide_show_cameraide_list': True,
+    'cameraide_show_other_list': False,
+    'cameraide_show_resolution': True,
+    'cameraide_show_frame_range': True,
+    'cameraide_show_file_output': True,
+    'cameraide_show_format_settings': True,
+    'cameraide_show_file_output_advanced': False,
+    'cameraide_show_format_advanced': False,
+}
+
+
 def register():
-    bpy.types.Scene.cameraide_show_cameraide_list = bpy.props.BoolProperty(default=True)
-    bpy.types.Scene.cameraide_show_other_list = bpy.props.BoolProperty(default=False)
+    for name, default in _UI_TOGGLES.items():
+        setattr(bpy.types.Scene, name, bpy.props.BoolProperty(default=default))
 
     try:
         bpy.utils.unregister_class(CAMERAIDE_PT_sidebar_panel)
@@ -397,5 +416,6 @@ def unregister():
     except:
         pass
 
-    del bpy.types.Scene.cameraide_show_cameraide_list
-    del bpy.types.Scene.cameraide_show_other_list
+    for name in _UI_TOGGLES:
+        if hasattr(bpy.types.Scene, name):
+            delattr(bpy.types.Scene, name)
