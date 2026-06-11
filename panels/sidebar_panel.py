@@ -5,7 +5,7 @@ from bpy.types import Panel
 
 class CAMERAIDE_PT_sidebar_panel(Panel):
     """Main sidebar panel for Cameraide"""
-    bl_label = "Cameraide 1.0.8"
+    bl_label = "Cameraide 1.0.9"
     bl_idname = "CAMERAIDE_PT_sidebar_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'

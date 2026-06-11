@@ -279,12 +279,30 @@ def on_active_camera_changed(scene):
 
     camera_switched = (frame_manager.previous_camera != current_camera)
 
-    settings = current_camera.data.cameraide_settings
-    if settings.use_custom_settings and settings.sync_frame_range and settings.frame_range_mode == 'PER_CAMERA':
-        with prevent_recursive_update():
-            scene.frame_start = settings.frame_start
-            scene.frame_end = settings.frame_end
-            frame_manager.store_range(current_camera)
+    # Before applying the new camera's range, save the scene's current frame
+    # range back to the previous camera (if it had two-way sync enabled).
+    if camera_switched and frame_manager.previous_camera:
+        prev = frame_manager.previous_camera
+        if prev.type == 'CAMERA':
+            prev_settings = prev.data.cameraide_settings
+            if (prev_settings.use_custom_settings and
+                    prev_settings.sync_frame_range and
+                    prev_settings.frame_range_mode == 'PER_CAMERA'):
+                with prevent_recursive_update():
+                    prev_settings.frame_start = scene.frame_start
+                    prev_settings.frame_end = scene.frame_end
+                    frame_manager.store_range(prev)
+
+    # Only push cameraide settings → scene on an actual camera switch.
+    # Pushing on every depsgraph update would overwrite timeline edits before
+    # the msgbus callback has a chance to capture them.
+    if camera_switched:
+        settings = current_camera.data.cameraide_settings
+        if settings.use_custom_settings and settings.sync_frame_range and settings.frame_range_mode == 'PER_CAMERA':
+            with prevent_recursive_update():
+                scene.frame_start = settings.frame_start
+                scene.frame_end = settings.frame_end
+                frame_manager.store_range(current_camera)
 
     frame_manager.previous_camera = current_camera
     update_viewport_resolution(bpy.context)
@@ -344,6 +362,36 @@ def on_sync_toggle(camera_obj):
 
 
 # ---------------------------------------------------------------------------
+# Scene frame range → Cameraide  (timeline edits feed back into camera)
+# ---------------------------------------------------------------------------
+
+def _on_scene_frame_range_changed():
+    """Fired when scene.frame_start or scene.frame_end changes via the timeline.
+    Writes the new values back into the active camera's Cameraide settings so
+    that sync is truly two-way (PER_CAMERA mode only).
+    """
+    if frame_manager.is_updating:
+        return
+    context = bpy.context
+    if not context or not hasattr(context, 'scene'):
+        return
+    scene = context.scene
+    cam = scene.camera
+    if not cam or cam.type != 'CAMERA':
+        return
+    settings = cam.data.cameraide_settings
+    if not settings.use_custom_settings or not settings.sync_frame_range:
+        return
+    if settings.frame_range_mode != 'PER_CAMERA':
+        return
+
+    with prevent_recursive_update():
+        settings.frame_start = scene.frame_start
+        settings.frame_end = scene.frame_end
+        frame_manager.store_range(cam)
+
+
+# ---------------------------------------------------------------------------
 # Register / unregister
 # ---------------------------------------------------------------------------
 
@@ -376,6 +424,15 @@ def _subscribe_msgbus():
         args=(),
         notify=_on_native_resolution_changed,
     )
+
+    # Scene frame range → Cameraide (two-way sync: timeline edits feed back)
+    for prop in ("frame_start", "frame_end"):
+        bpy.msgbus.subscribe_rna(
+            key=(bpy.types.Scene, prop),
+            owner=_msgbus_owner,
+            args=(),
+            notify=_on_scene_frame_range_changed,
+        )
 
 
 

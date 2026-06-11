@@ -10,9 +10,11 @@ Resolution,Swap Resolution,One-click button to swap X and Y resolution values
 Resolution,Resolution Presets,Preset menu (e.g. 1080p, 4K) placed above resolution inputs
 Resolution,Live Native Sync,Cameraide resolution is pushed into Blender's native render panel in real time
 Frame Range,Per-Camera Frame Range,Independent start/end/step frame range per camera
-Frame Range,Frame Range Sync,"When ON: render uses the camera's Cameraide frame range; when OFF: render uses the current timeline range"
+Frame Range,Frame Range Sync,"When ON (PER_CAMERA mode): true two-way sync between Cameraide settings and the timeline; when OFF: render uses the current timeline range"
+Frame Range,Two-Way Timeline Sync,"Editing scene frame_start/frame_end in the timeline writes back to the active camera's Cameraide settings in real time (PER_CAMERA mode only)"
+Frame Range,Camera Switch Save,The previous camera's Cameraide frame range is saved from the scene before the new camera's range is applied on switch
 Frame Range,Frame Range Clamping,Start frame is clamped to end − 1; end frame is clamped to start + 1
-Frame Range,Timeline Marker Mode,Alternate mode reads frame ranges from timeline markers bound to the camera
+Frame Range,Timeline Marker Mode,Alternate mode reads frame ranges from timeline markers bound to the camera; sync features are bypassed
 Frame Range,Mode Auto-Detection,On befriend Cameraide auto-detects whether timeline markers are present
 Frame Range,Marker Warning,Warning box shown when mode and marker presence are mismatched
 File Output,Output Path,Per-camera base output directory
