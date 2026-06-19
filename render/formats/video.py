@@ -33,6 +33,7 @@ def apply_video_format(settings, context):
         if hasattr(ffmpeg, 'constant_rate_factor'):
             ffmpeg.constant_rate_factor = 'PERC_LOSSLESS'
         ffmpeg.gopsize = 1
+        scene.render.image_settings.color_mode = 'RGBA'
     else:
         if hasattr(ffmpeg, 'constant_rate_factor'):
             ffmpeg.constant_rate_factor = settings.video_quality

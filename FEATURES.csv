@@ -29,7 +29,7 @@ File Format,JPEG,Outputs JPEG with configurable quality
 File Format,OpenEXR,Outputs EXR with configurable bit depth and codec
 File Format,H.264 MP4,Outputs MP4 using H.264 codec with quality, bitrate, and GOP size controls
 File Format,H.264 MKV,Outputs MKV using H.264 codec with quality, bitrate, and GOP size controls
-File Format,ProRes MOV,Outputs QuickTime MOV using Apple ProRes codec (perceptually lossless)
+File Format,ProRes MOV,Outputs QuickTime MOV using Apple ProRes 4444 XQ codec with alpha (RGBA; perceptually lossless)
 File Format,Advanced Group,Collapsible sub-group per format for depth/codec/quality/audio settings
 File Format,Alpha Transparency,Unified film-transparent toggle for all six formats; disables world rendering when enabled
 Audio,Audio Codec Dropdown,Select audio codec per camera (No Audio / MP3 / AAC / PCM / etc.)
