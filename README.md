@@ -1,6 +1,6 @@
 # Cameraide
 
-**Blender addon — version 1.0.8 · requires Blender 4.2+**
+**Blender addon — version 1.1.0 · requires Blender 4.2+**
 
 Cameraide gives every camera in your scene its own independent render settings. Switch cameras and the output format, resolution, frame range, and file path switch with it — no more manually re-configuring the Output panel between shots.
 
