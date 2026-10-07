@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Data Mesh Storyboard</title>
+<style id="tokens">
+:root{--panel:#0c0f14;--page:#07090c;--body:#171c24;--deck:#212836;--line:#a3aebf;--detail:#4d586a;--recess:#0a0d12;--ink:#c8d0dc;--ink-hi:#fff;--glass:#0f141b;--accent:#ffb02e;--accent-hi:#ffe2a6;color-scheme:dark}
+:root[data-theme=light]{--panel:#e9ecf0;--page:#f6f7f9;--body:#ffffff;--deck:#eef1f5;--line:#38414e;--detail:#a5aebb;--recess:#d6dbe3;--ink:#2a313b;--ink-hi:#000;--glass:#dfe4ea;color-scheme:light}
+:root{--glass-on:color-mix(in srgb,var(--accent) 26%,var(--recess));--accent-dim:color-mix(in srgb,var(--accent) 38%,var(--panel))}
+</style>
+<style id="vocab">
+.stage{display:block;width:100%;height:100%;outline:none}
+.stage *{vector-effect:non-scaling-stroke}
+.face{fill:var(--body);stroke:var(--line);stroke-width:1;stroke-linejoin:round}
+.face.top{fill:var(--deck)}
+.face.recess{fill:var(--recess);stroke:var(--detail)}
+.detail{fill:none;stroke:var(--detail);stroke-width:.8;stroke-linecap:round;stroke-linejoin:round}
+.dash{stroke-dasharray:4 4}
+.label,.scr{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em;stroke:none}
+.label{fill:var(--ink);opacity:.75}
+.scr{fill:var(--accent-hi)}
+.scr-accent{fill:var(--accent)}
+.press{cursor:pointer;transition:transform .08s}
+.press.down{transform:translate(0,3px)}
+.press.lit .face{stroke:var(--accent);fill:color-mix(in srgb,var(--accent) 30%,var(--body))}
+.press.latched .face.top{fill:var(--accent-dim);stroke:var(--accent-hi)}
+.glass{fill:var(--glass);stroke:var(--line)}
+.glass.hot{fill:var(--glass-on);stroke:var(--accent-hi)}
+.halo{fill:var(--accent);opacity:0;transition:opacity .45s;pointer-events:none}
+.halo.hot{opacity:.5}
+.led{fill:var(--detail);stroke:none}
+.led.hot{fill:var(--accent-hi)}
+.wire{fill:none;stroke:var(--line);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.wire.hot{stroke:var(--accent)}
+.wire-under{fill:none;stroke:var(--panel);stroke-width:5}
+.pulse{fill:none;stroke:var(--accent-hi);stroke-width:3;stroke-linecap:round;stroke-dasharray:60 940;stroke-dashoffset:60;opacity:0}
+.pulse.go{animation:iso-pulse 1s linear 1}
+@keyframes iso-pulse{0%{stroke-dashoffset:60;opacity:1}99%{opacity:1}100%{stroke-dashoffset:-1000;opacity:0}}
+.blink{animation:iso-blink 1.1s steps(1) infinite}
+@keyframes iso-blink{0%{opacity:1}50%{opacity:.05}}
+.limb{fill:none;stroke:var(--line);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.mast{fill:none;stroke:var(--line);stroke-width:1.1}
+.ico{fill:none;stroke:var(--ink);stroke-width:.9;stroke-linecap:round;stroke-linejoin:round}
+.ico.f{fill:var(--ink)}
+.ic .face{transition:stroke .3s}
+.ic.hot .face{stroke:var(--accent)}
+.ic.hot .ico{stroke:var(--accent-hi)}
+.ic.hot .ico.f{fill:var(--accent)}
+.wins .pn{fill:var(--recess);stroke:var(--detail);stroke-width:.5;transition:fill .35s}
+.wins.lit .pn{fill:var(--accent);stroke:var(--accent-hi)}
+.wins.lit .pn.d{opacity:.4}
+.wins.lit .pn.h{fill:var(--accent-hi)}
+.wins.lit .pn.x{fill:var(--recess);stroke:var(--detail)}
+.tag{fill:var(--glass);stroke:var(--line)}
+.tag.hot{fill:var(--glass-on);stroke:var(--accent-hi)}
+.sweep{fill:none;stroke:var(--accent-hi);stroke-width:1.4;stroke-linecap:round}
+</style>
+<style id="page">
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
+.side{padding:22px 16px;border-right:1px solid var(--detail);display:flex;flex-direction:column;gap:18px}
+.brand{font-weight:600;letter-spacing:.02em}.brand span{color:var(--accent)}
+#nav{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+#nav button{all:unset;box-sizing:border-box;width:100%;cursor:pointer;padding:7px 10px;border-radius:7px;display:flex;gap:10px;color:var(--ink)}
+#nav button:hover{background:var(--deck)}
+#nav button[aria-current=true]{background:var(--deck);color:var(--ink-hi);box-shadow:inset 2px 0 var(--accent)}
+#nav i{font-style:normal;font-family:ui-monospace,Menlo,monospace;color:var(--accent);opacity:.9;min-width:22px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sw{width:18px;height:18px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.sw[aria-pressed=true]{border-color:var(--ink-hi)}
+.tools button.t{all:unset;cursor:pointer;font-size:12px;padding:4px 9px;border:1px solid var(--detail);border-radius:6px}
+.tools button.t:hover{border-color:var(--accent)}
+.credit{margin-top:auto;font-size:11px;color:var(--ink);opacity:.55;text-decoration:none}
+.credit:hover{opacity:1;color:var(--accent)}
+main{padding:20px 24px;min-width:0}
+header{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:12px}
+#figlabel{font-family:ui-monospace,Menlo,monospace;font-size:13px;letter-spacing:.05em;color:var(--ink-hi)}
+#figlabel b{color:var(--accent);font-weight:500}
+#hint{font-size:12px;opacity:.65}
+#stageHolder{position:relative;width:100%;max-width:calc((100vh - 230px)*4/3);min-width:320px;aspect-ratio:4/3;background:var(--panel);border:1px solid var(--detail);border-radius:14px;overflow:hidden}
+#stageHolder::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 55% at 50% 50%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%);opacity:0;transition:opacity .6s;pointer-events:none}
+#stageHolder.on::before{opacity:1}
+#stage{position:relative}
+#readout{position:absolute;right:14px;bottom:10px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--accent-hi);opacity:.9;pointer-events:none}
+.vo{margin-top:14px;max-width:calc((100vh - 230px)*4/3);min-width:320px}
+.vo .shot{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.vo p{margin:4px 0 0;font-size:15px;color:var(--ink-hi)}
+.vo small{display:block;margin-top:8px;opacity:.6;font-size:12px}
+@media (max-width:820px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--detail);padding:14px}#nav{flex-direction:row;overflow-x:auto}#nav button{white-space:nowrap}.credit{margin-top:0}#stageHolder,.vo{max-width:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="fx">
+<filter id="bloom" filterUnits="userSpaceOnUse" x="-1500" y="-1500" width="3000" height="3000"><feGaussianBlur stdDeviation="7"/></filter>
+<filter id="glow" filterUnits="userSpaceOnUse" x="-1500" y="-1500" width="3000" height="3000"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="soft" filterUnits="userSpaceOnUse" x="-1500" y="-1500" width="3000" height="3000"><feGaussianBlur stdDeviation=".9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs></svg>
+<div class="app">
+  <nav class="side" aria-label="Storyboard shots">
+    <div class="brand"><span>Data mesh</span> · storyboard</div>
+    <ol id="nav"></ol>
+    <div class="tools" id="pal"></div>
+    <div class="tools"><button class="t" id="theme" type="button">Light / dark</button><button class="t" id="dl" type="button">Download SVG</button></div>
+    <a class="credit" href="https://iso-glow.vercel.app" target="_blank" rel="noopener">Made with ISO-GLOW ↗</a>
+  </nav>
+  <main>
+    <header><div id="figlabel"></div><div id="hint"></div></header>
+    <div id="stageHolder" class="glow"><svg id="stage" class="stage" tabindex="0"></svg><div id="readout"></div></div>
+    <section class="vo"><div class="shot" id="shot"></div><p id="vo"></p><small id="vis"></small></section>
+  </main>
+</div>
+<script>
+window.GALLERY = { palette: 'city', autoDemo: true };
+const FIGS = [];
+const ISO = (() => {
+  const C = Math.cos(Math.PI / 6), S = Math.sin(Math.PI / 6);
+  const n = v => +v.toFixed(2), n4 = v => +v.toFixed(4);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const P = (x, y, z) => [(x - y) * C, (x + y) * S - z];
+  const plane = (O, U, V) => { const o = P(...O), u = P(...U), v = P(...V); return `matrix(${n4(u[0])} ${n4(u[1])} ${n4(v[0])} ${n4(v[1])} ${n4(o[0])} ${n4(o[1])})`; };
+  const TOP = (x, y, z) => plane([x, y, z], [1, 0, 0], [0, 1, 0]);
+  const FRONT = (x, y, z) => plane([x, y, z], [1, 0, 0], [0, 0, -1]);
+  const SIDE = (x, y, z) => plane([x, y, z], [0, -1, 0], [0, 0, -1]);
+  const pp = p => n(p[0]) + ',' + n(p[1]);
+  const poly = (pts, cls) => `<polygon class="${cls}" points="${pts.map(p => pp(P(...p))).join(' ')}"/>`;
+  const outline = (x, y, w, d, r) => { const o = []; [[x + w - r, y + r, -90], [x + w - r, y + d - r, 0], [x + r, y + d - r, 90], [x + r, y + r, 180]].forEach(([cx, cy, a0]) => { for (let k = 0; k <= 4; k++) { const a = (a0 + k * 22.5) * Math.PI / 180; o.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } }); return o; };
+  const hull = pts => {
+    const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = []; p.forEach(q => { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); });
+    const up = []; p.slice().reverse().forEach(q => { while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); });
+    return lo.slice(0, -1).concat(up.slice(0, -1));
+  };
+  const box = (x, y, z, w, d, h, r = 0, cls = '') => {
+    const g = s => cls ? `<g class="${cls}">${s}</g>` : s;
+    if (!r) return g(
+      poly([[x, y + d, z], [x + w, y + d, z], [x + w, y + d, z + h], [x, y + d, z + h]], 'face') +
+      poly([[x + w, y, z], [x + w, y + d, z], [x + w, y + d, z + h], [x + w, y, z + h]], 'face') +
+      poly([[x, y, z + h], [x + w, y, z + h], [x + w, y + d, z + h], [x, y + d, z + h]], 'face top'));
+    r = Math.min(r, w / 2, d / 2);
+    const o = outline(x, y, w, d, r);
+    const sil = hull([...o.map(([a, b]) => P(a, b, z)), ...o.map(([a, b]) => P(a, b, z + h))]);
+    return g(`<polygon class="face" points="${sil.map(pp).join(' ')}"/><polygon class="face top" points="${o.map(([a, b]) => pp(P(a, b, z + h))).join(' ')}"/>`);
+  };
+  const rect = (t, w, h, r = 0, cls = 'face') => `<g transform="${t}"><rect class="${cls}" width="${w}" height="${h}" rx="${r}"/></g>`;
+  const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + P(...p).map(n).join(' ')).join('');
+  const slits = (a0, a1, step, b0, b1, vertical = true, cls = 'detail') => {
+    let s = ''; for (let a = a0; a <= a1 + 1e-6; a += step) s += vertical
+      ? `<line class="${cls}" x1="${n(a)}" y1="${b0}" x2="${n(a)}" y2="${b1}"/>`
+      : `<line class="${cls}" x1="${b0}" y1="${n(a)}" x2="${b1}" y2="${n(a)}"/>`;
+    return s;
+  };
+  const frame = (pts, pad = .05) => {
+    const pr = pts.map(p => P(...p));
+    const x0 = Math.min(...pr.map(p => p[0])), x1 = Math.max(...pr.map(p => p[0])), y0 = Math.min(...pr.map(p => p[1])), y1 = Math.max(...pr.map(p => p[1]));
+    const m = Math.max(x1 - x0, (y1 - y0) * 4 / 3) * pad;
+    let W = x1 - x0 + 2 * m, H = y1 - y0 + 2 * m;
+    if (W / H < 4 / 3) W = H * 4 / 3; else H = W * 3 / 4;
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, vb = [cx - W / 2, cy - H / 2, W, H];
+    return { P, D: P, TOP, FRONT, SIDE, box, boxc: box, rect, path, poly, vb, viewBox: vb.map(n).join(' ') };
+  };
+  return { frame, slits, esc, P, TOP, FRONT, SIDE, box, rect, path, n };
+})();
+</script>
+<script>
+/* ---- shared helpers for the Data Mesh storyboard figures ---- */
+const KINDS = ['heart', 'play', 'bars', 'chat', 'pin', 'ticket', 'cam'];
+const ICONS = {
+  heart: '<path class="ico f" d="M0 4 C-6 -1 -4.5 -5 0 -2 C4.5 -5 6 -1 0 4Z"/>',
+  play: '<path class="ico f" d="M-2.2 -3.4L3.2 0L-2.2 3.4Z"/>',
+  bars: '<path class="ico" d="M-3.5 3.5V0M0 3.5V-3M3.5 3.5V-1.5"/>',
+  chat: '<path class="ico" d="M-4 -3.5H4V1.5H-0.5L-3 4V1.5H-4Z"/>',
+  pin: '<path class="ico" d="M0 4.5L-3 -0.5A3.4 3.4 0 1 1 3 -0.5Z"/><circle class="ico" cx="0" cy="-1.6" r="1"/>',
+  ticket: '<path class="ico" d="M-4.5 -2.5H4.5V3H-4.5Z M1 -2.5V3"/>',
+  cam: '<rect class="ico" x="-4.5" y="-2.5" width="9" height="6" rx="1"/><circle class="ico" cx="0" cy="0.5" r="1.6"/>',
+  coin: '<circle class="ico f" r="3.4"/><path class="ico" d="M0 -1.6V1.6" style="stroke:var(--recess)"/>',
+};
+const icon = (kind, cls = 'hot') => `<g class="ic ${cls}"><rect class="face" x="-7" y="-7" width="14" height="14" rx="3.5"/>${ICONS[kind]}</g>`;
+const seeded = s => () => (s = (s * 16807) % 2147483647) / 2147483647;
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const f1 = v => (+v).toFixed(2);
+const tr = (K, dx, dy, dz = 0) => { const p = K.D(dx, dy, dz); return `translate(${f1(p[0])} ${f1(p[1])})`; };
+const setTr = (K, el, dx, dy, dz = 0) => el.setAttribute('transform', tr(K, dx, dy, dz));
+const bill = (K, el, x, y, z, s = 1, op = 1) => { const p = K.P(x, y, z); el.setAttribute('transform', `translate(${f1(p[0])} ${f1(p[1])}) scale(${f1(s)})`); el.style.opacity = op; };
+
+/* rounded ground plate with inset line + screws */
+function plate(K, x, y, w, d, h = 6, o = {}) {
+  let s = K.box(x, y, 0, w, d, h, o.r === undefined ? 10 : o.r);
+  s += `<g transform="${K.TOP(x, y, h)}"><rect class="detail" x="6" y="6" width="${w - 12}" height="${d - 12}" rx="5"/>`;
+  if (!o.noscrew) [[11, 11], [w - 11, 11], [11, d - 11], [w - 11, d - 11]].forEach(([a, b]) => { s += `<circle class="face recess" cx="${a}" cy="${b}" r="2.2"/><line class="detail" x1="${a - 1.4}" y1="${b}" x2="${a + 1.4}" y2="${b}"/>`; });
+  return s + '</g>';
+}
+/* flat road strip on a plate top. axis 'x': runs along x */
+function road(K, x, y, w, d, z, axis = 'x') {
+  let s = `<g transform="${K.TOP(x, y, z)}"><rect class="face recess" width="${w}" height="${d}"/>`;
+  s += axis === 'x' ? `<line class="detail dash" x1="4" y1="${d / 2}" x2="${w - 4}" y2="${d / 2}"/>` : `<line class="detail dash" x1="${w / 2}" y1="4" x2="${w / 2}" y2="${d - 4}"/>`;
+  return s + '</g>';
+}
+/* window panes on a plane */
+function wins(t, w, h, cols, rows, rnd, lit = false) {
+  const pw = w / cols, ph = h / rows; let s = `<g class="wins${lit ? ' lit' : ''}" transform="${t}">`;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const v = rnd(); s += `<rect class="pn${v < .12 ? ' x' : v < .3 ? ' d' : v < .42 ? ' h' : ''}" x="${f1(c * pw + .7)}" y="${f1(r * ph + .8)}" width="${f1(pw - 1.4)}" height="${f1(ph - 1.6)}"/>`; }
+  return s + '</g>';
+}
+/* a building: box with window grids on FRONT and SIDE */
+function bldg(K, x, y, w, d, h, rnd, o = {}) {
+  const z = o.z === undefined ? 6 : o.z, pad = 3, cw = o.cw || 7, rh = o.rh || 8;
+  let s = K.box(x, y, z, w, d, h, o.r === undefined ? 1.5 : o.r);
+  s += `<g transform="${K.TOP(x, y, z + h)}"><rect class="detail" x="2.5" y="2.5" width="${w - 5}" height="${d - 5}"/></g>`;
+  const cF = Math.max(2, Math.round((w - 2 * pad) / cw)), cS = Math.max(2, Math.round((d - 2 * pad) / cw)), rows = Math.max(2, Math.floor((h - 8) / rh));
+  s += wins(K.FRONT(x + pad, y + d, z + h - 5), w - 2 * pad, rows * rh - 2, cF, rows, rnd, o.lit);
+  s += wins(K.SIDE(x + w, y + d - pad, z + h - 5), d - 2 * pad, rows * rh - 2, cS, rows, rnd, o.lit);
+  return s;
+}
+function tree(K, x, y, z = 6, r = 7) {
+  const a = K.P(x, y, z + 1), b = K.P(x, y, z + 9), c = K.P(x, y, z + 9 + r * .8);
+  return `<path class="mast" d="M${a.map(f1).join(' ')}L${b.map(f1).join(' ')}"/><circle class="face" cx="${f1(c[0])}" cy="${f1(c[1])}" r="${r}"/><circle class="detail" cx="${f1(c[0] - r * .2)}" cy="${f1(c[1] - r * .2)}" r="${f1(r * .5)}"/>`;
+}
+/* little person, feet at (x,y,z). o: hat 'cap'|'hard', vest, hold [x,y,z], up, cls */
+function person(K, x, y, z, o = {}) {
+  const { box, P, FRONT } = K; let s = `<g class="person ${o.cls || ''}">`;
+  s += box(x - 3.2, y - 1.8, z, 6.4, 3.6, 9, .8);
+  s += `<g transform="${FRONT(x - 3.2, y + 1.8, z + 9)}"><line class="detail" x1="3.2" y1="1" x2="3.2" y2="9"/></g>`;
+  s += box(x - 3.8, y - 2.2, z + 9, 7.6, 4.4, 9.5, 1.2);
+  if (o.vest) s += `<g transform="${FRONT(x - 3.8, y + 2.2, z + 18.5)}"><line class="detail" x1="2" y1="0" x2="2" y2="9.5"/><line class="detail" x1="5.6" y1="0" x2="5.6" y2="9.5"/><line class="detail" x1="0" y1="6" x2="7.6" y2="6"/></g>`;
+  const L = P(x - 4.2, y, z + 17.6), R = P(x + 4.2, y, z + 17.6);
+  const hl = o.hold ? P(o.hold[0] - 1.6, o.hold[1], o.hold[2]) : o.up ? P(x - 5.5, y, z + 25.5) : P(x - 4.6, y, z + 9.5);
+  const hr = o.hold ? P(o.hold[0] + 1.6, o.hold[1], o.hold[2]) : o.up ? P(x + 5.5, y, z + 25.5) : P(x + 4.6, y, z + 9.5);
+  s += `<path class="limb" d="M${L.map(f1).join(' ')}L${hl.map(f1).join(' ')}M${R.map(f1).join(' ')}L${hr.map(f1).join(' ')}"/>`;
+  const h = P(x, y, z + 22.8);
+  s += `<circle class="face" cx="${f1(h[0])}" cy="${f1(h[1])}" r="3.6"/>`;
+  if (o.hat) s += `<path class="face" d="M${f1(h[0] - 3.9)} ${f1(h[1] - .4)}A3.9 3.9 0 0 1 ${f1(h[0] + 3.9)} ${f1(h[1] - .4)}Z"/>` + (o.hat === 'hard' ? `<line class="detail" x1="${f1(h[0] - 5)}" y1="${f1(h[1] - .4)}" x2="${f1(h[0] + 5)}" y2="${f1(h[1] - .4)}"/>` : '');
+  return s + '</g>';
+}
+/* a seated/standing spectator: head + shoulders */
+function spectator(K, x, y, z, up) {
+  const h = K.P(x, y, z + 11), sh = K.P(x, y, z + 7);
+  return K.box(x - 2.2, y - 1.6, z, 4.4, 3.2, 8, 1.1) + `<circle class="face" cx="${f1(h[0])}" cy="${f1(h[1])}" r="2.5"/>` + (up ? `<path class="limb" style="stroke-width:1.5" d="M${K.P(x + 2.2, y, z + 7).map(f1).join(' ')}L${K.P(x + 3.4, y, z + 14).map(f1).join(' ')}"/>` : '');
+}
+/* parcel box with tape; z = base */
+function parcel(K, x, y, z, w, d, h, cls = '') {
+  return `<g class="parcel ${cls}">` + K.box(x, y, z, w, d, h, 0.6) +
+    `<g transform="${K.TOP(x, y, z + h)}"><line class="detail" x1="${f1(w / 2)}" y1="0" x2="${f1(w / 2)}" y2="${d}"/></g>` +
+    `<g transform="${K.FRONT(x, y + d, z + h)}"><line class="detail" x1="${f1(w / 2)}" y1="0" x2="${f1(w / 2)}" y2="${f1(h * .45)}"/></g></g>`;
+}
+/* delivery van parked with its rear at x0, cab toward +x, centre line yc, ground zb. Returns {back, front}; boxes live between. */
+function van(K, x0, yc, zb = 6, o = {}) {
+  const { box, FRONT, SIDE, rect } = K, W = 28, y0 = yc - W / 2;
+  const back = box(x0, y0, zb + 4, 75, W, 6, 1.5) + box(x0, y0, zb + 10, 50, 2, 9, 0) + (o.open ? '' : box(x0, y0, zb + 10, 2, W, 9, 0));
+  let front = box(x0, y0 + W - 2, zb + 10, 50, 2, 9, 0) + box(x0 + 50, y0, zb + 10, 25, W, 18, 3);
+  front += rect(FRONT(x0 + 54, y0 + W, zb + 26.5), 17, 7, 1.5, 'face glass') + rect(SIDE(x0 + 75, y0 + W - 3, zb + 26.5), 16, 7, 1.5, 'face glass');
+  front += `<g transform="${SIDE(x0 + 75, y0 + W - 3, zb + 15)}"><rect class="led ${o.lamp || ''}" filter="url(#soft)" x="0" y="0" width="4" height="2.4" rx="1"/><rect class="led ${o.lamp || ''}" filter="url(#soft)" x="18" y="0" width="4" height="2.4" rx="1"/></g>`;
+  [12, 62].forEach(wx => { front += `<g transform="${FRONT(x0 + wx - 5, y0 + W, zb + 9)}"><circle class="face" cx="5" cy="3.5" r="5"/><circle class="detail" cx="5" cy="3.5" r="2"/></g>`; });
+  return { back, front };
+}
+/* floating data icons rising from source points; returns {set(on), burst()} */
+function emitter(api, K, root, src, o = {}) {
+  const n = o.n || 6, rise = o.rise || 60, per = o.period || 3600, kinds = o.kinds || KINDS, sc0 = o.s || 1;
+  root.innerHTML = Array.from({ length: n }, (_, i) => icon(kinds[i % kinds.length])).join('');
+  const els = [...root.children]; els.forEach(e => { e.style.opacity = 0; });
+  let on = o.on !== false, gain = on ? 1 : 0, last = 0;
+  api.loop(t => {
+    const dt = Math.min(64, t - last); last = t; gain += ((on ? 1 : 0) - gain) * Math.min(1, dt / 260);
+    els.forEach((el, i) => {
+      const s = src[i % src.length], u = (t / per + i / n) % 1, a = Math.pow(Math.sin(Math.PI * u), .55) * gain;
+      const sc = sc0 * (.5 + .5 * easeOut(clamp(u * 3)));
+      bill(K, el, s[0] + Math.sin(u * 6.3 + i * 2) * 3 + ((i % 3) - 1) * (o.drift || 0) * u, s[1] + Math.cos(u * 5 + i) * 3 + ((i % 2) * 2 - 1) * (o.drift || 0) * u * .7, s[2] + u * rise, sc, a);
+    });
+  });
+  return { set(v) { on = !!v; }, get on() { return on; } };
+}
+
+/* scale a group of 3D markup about the screen-space foot point (x,y,z) */
+const big = (K, x, y, z, s, inner) => { const p = K.P(x, y, z); return `<g transform="translate(${f1(p[0])} ${f1(p[1])}) scale(${s}) translate(${f1(-p[0])} ${f1(-p[1])})">${inner}</g>`; };
+
+/* Shot 1 — Data City: nine city blocks around an event plaza; blocks part, data floats up. */
+FIGS.push({
+  id: 'data-city', name: 'Data City', shot: 'Shot 1',
+  vo: 'Every day across Global Media Services, teams create valuable data points.',
+  visual: 'Open on Data City, zooming into a live music event. Isometric squares move away. Data icons float up from the event.',
+  hint: 'Click the stage: data on/off · click any block: part the city · z',
+  aria: 'Isometric city of nine blocks around a live music event. Click the event plaza to switch the floating data icons on or off. Click any other block, or press z, to part the city blocks.',
+  css: `[data-fig="data-city"] .tile{cursor:pointer}[data-fig="data-city"] .tile:hover > .face.top{stroke:var(--ink)}`,
+  mount(stage, api) {
+    const T = 96, G = 10, N = 3, MAXSP = 40, EXT = N * T + (N - 1) * G;
+    const K = api.iso.frame([[-MAXSP, -MAXSP, 0], [EXT + MAXSP, -MAXSP, 0], [-MAXSP, EXT + MAXSP, 0], [EXT + MAXSP, EXT + MAXSP, 0], [0, 0, 100]], .02);
+    const { TOP, FRONT, box, rect, P } = K;
+    const slots = [[8, 8, 36, 32], [50, 10, 36, 30], [10, 52, 32, 34], [52, 54, 34, 32]];
+    const order = [];
+    for (let s = 0; s <= 4; s++) for (let i = 0; i < N; i++) { const j = s - i; if (j >= 0 && j < N) order.push([i, j]); }
+    let svg = '', ex = '';
+    const cx0 = 1 * (T + G), cy0 = 1 * (T + G);
+    order.forEach(([i, j]) => {
+      const ox = i * (T + G), oy = j * (T + G), center = i === 1 && j === 1, rnd = seeded(17 + i * 7 + j * 13);
+      svg += `<g class="tile" data-i="${i}" data-j="${j}" data-c="${center ? 1 : 0}">` + plate(K, ox, oy, T, T, 6, { r: 8 });
+      if (!center) {
+        slots.forEach((sl, k) => {
+          if (k >= 2 && rnd() < .35) return;
+          const h = i + j > 2 ? 14 + Math.round(rnd() * 16) : 22 + Math.round(rnd() * 44) + (i + j < 2 ? 10 : 0);
+          svg += bldg(K, ox + sl[0], oy + sl[1], sl[2], sl[3], h, rnd, { lit: true });
+        });
+        if (rnd() < .6) svg += tree(K, ox + 44, oy + 46, 6, 5);
+      } else {
+        const x = ox, y = oy;
+        svg += `<g transform="${FRONT(x, y + T, 6)}"><text class="label" x="8" y="4.6" font-size="3.8">EVENT PLAZA · LIVE</text></g>`;
+        svg += box(x + 12, y + 8, 6, 72, 20, 6, 1);
+        svg += box(x + 14, y + 8, 12, 68, 3, 30, 0);
+        svg += `<g transform="${FRONT(x + 14, y + 11, 42)}">
+          <rect class="halo" id="data-city-halo" width="68" height="30" rx="2" filter="url(#bloom)"/>
+          <rect class="face glass" id="data-city-screen" width="68" height="30" rx="2" filter="url(#soft)"/>
+          <g id="data-city-eq" filter="url(#soft)">${Array.from({ length: 12 }, (_, b) => `<rect class="scr-accent" x="${4 + b * 5.2}" y="14" width="3.4" height="14"/>`).join('')}</g>
+          <text class="scr" x="4" y="9" font-size="5">LIVE ▸ 21:04</text></g>`;
+        [[x + 4, y + 12], [x + 84, y + 12]].forEach(([a, b]) => {
+          svg += box(a, b, 6, 8, 8, 22, 1) + `<g transform="${FRONT(a, b + 8, 28)}"><circle class="detail" cx="4" cy="6" r="2.6"/><circle class="detail" cx="4" cy="15" r="3.4"/></g>`;
+        });
+        svg += box(x + 10, y + 9, 6, 2, 2, 40, 0) + box(x + 84, y + 9, 6, 2, 2, 40, 0) + box(x + 10, y + 9, 44, 76, 2, 2, 0);
+        svg += `<g transform="${TOP(x, y, 6)}"><line class="detail dash" x1="8" y1="38" x2="88" y2="38"/></g>`;
+        const r2 = seeded(5);
+        [48, 58, 68, 78, 88].forEach(yy => { for (let xx = 12; xx <= 86; xx += 9) svg += spectator(K, x + xx + (r2() - .5) * 2, y + yy, 6, r2() < .25); });
+      }
+      svg += '</g>';
+    });
+    svg += '<g id="data-city-fl"></g>';
+    stage.setAttribute('viewBox', K.viewBox); stage.innerHTML = svg;
+
+    const q = s => stage.querySelector(s), tiles = [...stage.querySelectorAll('.tile')], eq = [...stage.querySelectorAll('#data-city-eq rect')];
+    const src = [[30, 50], [48, 60], [66, 50], [22, 72], [74, 70], [48, 82], [36, 66], [60, 78]].map(([a, b]) => [cx0 + a, cy0 + b, 18]);
+    const em = emitter(api, K, q('#data-city-fl'), src, { n: 9, rise: 95, s: 1.9, period: 5200, drift: 26 });
+    const st = { on: true, sp: 0, target: 0 };
+    function render() {
+      q('#data-city-screen').classList.toggle('hot', st.on); q('#data-city-halo').classList.toggle('hot', st.on);
+      stage.querySelectorAll('.wins').forEach(w => w.classList.toggle('lit', st.on));
+      em.set(st.on); api.power(st.on);
+      api.readout((st.on ? 'data flowing' : 'data off') + ' · ' + (st.target > 5 ? 'city parted' : 'city closed'));
+    }
+    let last = 0;
+    api.loop(t => {
+      const dt = Math.min(64, t - last); last = t;
+      st.sp += (st.target - st.sp) * Math.min(1, dt / 320);
+      tiles.forEach(el => {
+        if (el.dataset.c === '1') return; const i = +el.dataset.i - 1, j = +el.dataset.j - 1;
+        setTr(K, el, i * st.sp, j * st.sp, 0);
+      });
+      eq.forEach((b, k) => { const h = st.on ? 3 + 22 * Math.abs(Math.sin(t / 240 + k * 1.1)) * (.5 + .5 * Math.sin(t / 900 + k)) ** 2 + 3 : 2; b.setAttribute('height', h.toFixed(1)); b.setAttribute('y', (28 - h).toFixed(1)); });
+    });
+    const toggleData = () => { st.on = !st.on; render(); }, part = () => { st.target = st.target > 5 ? 0 : MAXSP; render(); };
+    stage.addEventListener('click', e => { const t = e.target.closest('.tile'); if (!t) return; if (t.dataset.c === '1') toggleData(); else part(); });
+    render();
+    return {
+      key: e => { if (e.key === ' ' || e.key === 'Enter') { toggleData(); return true; } if (e.key === 'z' || e.key === 'Z') { part(); return true; } return false; },
+      demo: () => { st.target = 34; render(); },
+    };
+  },
+});
+
+/* Shot 2 — The event: security, camera and phone each create data. */
+FIGS.push({
+  id: 'event', name: 'The event', shot: 'Shot 2',
+  vo: 'Our data mesh is a way of organizing all this data into something useful. For example, measuring the success of an event like this one. Where fans attend, and content is created, published and watched by audiences all over the world.',
+  visual: 'Zoom in further: a security person clicking attendance, a camera person filming, someone on their phone. All creating data, shown with floating icons.',
+  hint: 'Click a person (or press 1 · 2 · 3) · space pauses the data',
+  aria: 'Isometric live music event. A security guard counts entries, a camera operator films, a fan posts from a phone; each creates floating data icons. Click a person or press 1, 2 or 3 to log an entry, a clip or a post. Space pauses the data.',
+  css: `[data-fig="event"] .who{cursor:pointer}[data-fig="event"] .who:hover .face{stroke:var(--ink-hi)}`,
+  mount(stage, api) {
+    const K = api.iso.frame([[0, 0, 0], [220, 0, 0], [0, 170, 0], [220, 170, 0], [16, 8, 56]], .04);
+    const { TOP, FRONT, SIDE, box, rect, P } = K;
+    let svg = plate(K, 0, 0, 220, 170, 6, { r: 10 });
+    // stage + LED wall + speakers + truss
+    svg += box(16, 8, 6, 188, 22, 7, 1) + box(28, 9, 13, 164, 3, 36, 0);
+    svg += `<g transform="${FRONT(28, 12, 49)}"><rect class="halo hot" id="event-halo" width="164" height="36" rx="2" filter="url(#bloom)"/><rect class="face glass hot" id="event-screen" width="164" height="36" rx="2" filter="url(#soft)"/>
+      <g id="event-eq" filter="url(#soft)">${Array.from({ length: 24 }, (_, b) => `<rect class="scr-accent" x="${5 + b * 6.5}" y="20" width="4.2" height="14"/>`).join('')}</g>
+      <text class="scr" x="6" y="9" font-size="6">WORLD TOUR · LIVE</text></g>`;
+    [[18, 10], [194, 10]].forEach(([a, b]) => { svg += box(a, b, 6, 9, 10, 28, 1) + `<g transform="${FRONT(a, b + 10, 34)}"><circle class="detail" cx="4.5" cy="7" r="2.6"/><circle class="detail" cx="4.5" cy="18" r="3.6"/></g>`; });
+    svg += box(14, 9, 6, 2, 2, 50, 0) + box(204, 9, 6, 2, 2, 50, 0) + box(14, 9, 54, 192, 2, 2, 0);
+    // barrier + crowd
+    svg += box(14, 104, 6, 192, 2, 6, 0) + `<g transform="${FRONT(14, 106, 12)}">${api.iso.slits(6, 186, 8, 0, 6)}</g>`;
+    const r2 = seeded(9);
+    [42, 52, 62, 72, 82, 92].forEach(yy => { for (let xx = 22; xx <= 198; xx += 11) svg += spectator(K, xx + (r2() - .5) * 3, yy, 6, r2() < .22); });
+    // the three data makers
+    const SC = 1.7, W = [{ x: 46, y: 130 }, { x: 108, y: 134 }, { x: 170, y: 128 }];
+    svg += `<g class="who press" data-w="0">${big(K, W[0].x, W[0].y, 6, SC, person(K, W[0].x, W[0].y, 6, { hat: 'cap', vest: true, hold: [W[0].x + 2, W[0].y + 4, 19] }) + box(W[0].x - 1.5, W[0].y + 4, 17, 3, 2, 3.4, .5) + `<g transform="${FRONT(W[0].x - 1.5, W[0].y + 6, 20.4)}"><rect class="led" id="event-clk" filter="url(#soft)" x="1" y="1" width="1.2" height="1.4"/></g>`)}</g>`;
+    svg += `<g class="who press" data-w="1">${big(K, W[1].x, W[1].y, 6, SC, person(K, W[1].x, W[1].y, 6, { hat: 'cap', hold: [W[1].x + 2, W[1].y + 1, 24] }) + box(W[1].x - 5, W[1].y - 3, 24, 11, 8, 6, 1) + `<g transform="${FRONT(W[1].x - 5, W[1].y + 5, 30)}"><rect class="face glass hot" id="event-vf" x="1.5" y="1" width="5" height="3.4" rx=".6"/><rect class="led hot blink" id="event-rec" filter="url(#soft)" x="8" y="1.4" width="1.6" height="1.6"/></g>`)}</g>`;
+    svg += `<g class="who press" data-w="2">${big(K, W[2].x, W[2].y, 6, SC, person(K, W[2].x, W[2].y, 6, { hold: [W[2].x + 1, W[2].y + 4, 22] }) + box(W[2].x - 2.4, W[2].y + 4, 22, 4.8, 1, 8, .4) + `<g transform="${FRONT(W[2].x - 2.4, W[2].y + 5, 30)}"><rect class="face glass hot" x=".4" y=".6" width="4" height="6.8" rx=".6" filter="url(#soft)"/></g>`)}</g>`;
+    const TAGS = [['ENTRIES', 'event-n0'], ['CLIPS', 'event-n1'], ['POSTS', 'event-n2']];
+    TAGS.forEach(([lab, id], k) => { svg += `<g class="tagb" id="event-tag${k}"><rect class="tag hot" x="-13" y="-6.5" width="26" height="12" rx="2.6"/><text class="scr" id="${id}" x="0" y="2.2" font-size="6" text-anchor="middle">0000</text><text class="label" x="0" y="-9" font-size="3.8" text-anchor="middle">${lab}</text></g>`; });
+    svg += '<g id="event-fl0"></g><g id="event-fl1"></g><g id="event-fl2"></g><g id="event-fl3"></g>';
+    stage.setAttribute('viewBox', K.viewBox); stage.innerHTML = svg;
+
+    const q = s => stage.querySelector(s), st = { on: true, n: [128, 24, 56], rec: true };
+    const kinds = [['ticket', 'pin', 'ticket'], ['cam', 'play', 'cam'], ['heart', 'chat', 'heart']];
+    const ems = W.map((w, k) => emitter(api, K, q('#event-fl' + k), [[w.x, w.y, 6 + 38 * SC]], { n: 3, rise: 52, s: 1.15, period: 3000, kinds: kinds[k], drift: 9 }));
+    ems.push(emitter(api, K, q('#event-fl3'), [[70, 60, 22], [120, 70, 22], [160, 55, 22], [96, 84, 22]], { n: 4, rise: 62, s: 1.1, period: 4200, kinds: ['heart', 'chat', 'play', 'bars'], drift: 14 }));
+    W.forEach((w, k) => bill(K, q('#event-tag' + k), w.x, w.y, 6 + 34 * SC, 1, 1));
+    const eq = [...stage.querySelectorAll('#event-eq rect')];
+    function render() {
+      TAGS.forEach(([, id], k) => { q('#' + id).textContent = String(st.n[k]).padStart(4, '0'); });
+      ems.forEach(e => e.set(st.on)); api.power(st.on);
+      q('#event-screen').classList.toggle('hot', st.on); q('#event-halo').classList.toggle('hot', st.on);
+      q('#event-rec').classList.toggle('hot', st.rec); q('#event-rec').classList.toggle('blink', st.rec);
+      api.readout(`${st.on ? 'live' : 'paused'} · entries ${st.n[0]} · clips ${st.n[1]} · posts ${st.n[2]}`);
+    }
+    function act(k) {
+      st.n[k]++; if (k === 1) st.rec = !st.rec || true;
+      const g = q(`.who[data-w="${k}"]`); api.flash(g);
+      if (k === 0) { const c = q('#event-clk'); c.classList.add('hot'); api.after(280, () => c.classList.remove('hot')); }
+      render();
+    }
+    api.loop(t => { eq.forEach((b, i) => { const h = st.on ? 3 + 24 * Math.abs(Math.sin(t / 260 + i * .8)) * (.4 + .6 * Math.abs(Math.sin(t / 1100 + i * .3))) : 2; b.setAttribute('height', h.toFixed(1)); b.setAttribute('y', (34 - h).toFixed(1)); }); });
+    stage.addEventListener('click', e => { const g = e.target.closest('.who'); if (g) act(+g.dataset.w); });
+    render();
+    return {
+      key: e => { if (e.key === ' ') { st.on = !st.on; render(); return true; } if ('123'.includes(e.key) && e.key) { act(+e.key - 1); return true; } return false; },
+      demo: () => { [0, 0, 1, 2, 0, 2].forEach((k, i) => api.after(250 + i * 320, () => act(k))); },
+    };
+  },
+});
+
+/* Shot 3 — Capture machine: a giant data sucker pulls floating data in, a conveyor belt carries it on. */
+FIGS.push({
+  id: 'capture', name: 'Capture machine', shot: 'Shot 3',
+  vo: 'Videos generate reactions, which can be used to measure success, giving a clear purpose to collecting this data.',
+  visual: 'Another isometric square: a machine with a giant data sucker, connected to a conveyor belt. A worker presses a button and floating data is captured and ingested into the machine.',
+  hint: 'Press the big button · or click the worker · space',
+  aria: 'Isometric capture machine with a large funnel-shaped data sucker and a conveyor belt. A worker stands at a console. Click the console button, the worker, or press space to suck the floating data icons into the machine.',
+  css: `[data-fig="capture"] .go{cursor:pointer}`,
+  mount(stage, api) {
+    const K = api.iso.frame([[0, 0, 0], [262, 0, 0], [0, 140, 0], [262, 140, 0], [14, 20, 76]], .04), { TOP, FRONT, SIDE, box, P } = K, slits = api.iso.slits;
+    let svg = plate(K, 0, 0, 262, 140, 6, { r: 10 });
+    svg += `<g transform="${FRONT(0, 140, 6)}"><text class="label" x="14" y="4.6" font-size="3.8">CAPTURE · INGEST</text></g>`;
+    // machine
+    svg += box(14, 20, 6, 64, 66, 56, 3) + box(58, 24, 62, 9, 9, 9, 1.5);
+    svg += `<g transform="${FRONT(14, 86, 62)}">
+      <rect class="face recess" x="5" y="5" width="54" height="31" rx="3"/>
+      <rect class="halo" id="capture-halo" x="7" y="7" width="50" height="27" rx="2" filter="url(#bloom)"/>
+      <rect class="face glass" id="capture-screen" x="7" y="7" width="50" height="27" rx="2" filter="url(#soft)"/>
+      <g id="capture-scr" filter="url(#soft)"><text class="scr" x="10" y="14.5" font-size="4.2">DATA INTAKE</text>
+        <text class="scr" id="capture-n" x="10" y="26" font-size="9">00/07</text>
+        <rect class="face recess" x="10" y="29.6" width="44" height="2.6"/><rect class="scr-accent" id="capture-bar" x="10" y="29.6" width="0" height="2.6"/></g>
+      ${slits(8, 54, 5, 42, 54)}
+      <circle class="led" id="capture-l0" filter="url(#soft)" cx="9" cy="39" r="1.3"/><circle class="led" id="capture-l1" filter="url(#soft)" cx="14" cy="39" r="1.3"/><circle class="led" id="capture-l2" filter="url(#soft)" cx="19" cy="39" r="1.3"/>
+    </g>`;
+    // the sucker: stepped horn pointing +x, mouth on the side plane
+    svg += box(78, 41, 22, 14, 24, 24, 2) + box(92, 36, 17, 14, 34, 34, 3) + box(106, 30, 11, 16, 46, 46, 5);
+    svg += `<g transform="${SIDE(122, 76, 57)}">
+      <rect class="face recess" x="3" y="3" width="40" height="40" rx="9"/>
+      <rect class="detail" x="8" y="8" width="30" height="30" rx="6"/><rect class="detail" x="13" y="13" width="20" height="20" rx="4"/>
+      <g id="capture-swirl" class="sweep" style="opacity:0" filter="url(#soft)"><path d="M6 23H16M23 6V16M40 23H30M23 40V30"/></g></g>`;
+    // conveyor
+    svg += box(34, 88, 6, 24, 60, 6, 1);
+    svg += `<g transform="${TOP(34, 88, 12)}"><clipPath id="capture-belt"><rect x="1" y="1" width="22" height="58"/></clipPath><g clip-path="url(#capture-belt)"><g id="capture-stripes">${slits(0, 66, 6, 1, 23, false)}</g></g></g>`;
+    svg += box(32, 88, 12, 2, 60, 3, 0) + box(58, 88, 12, 2, 60, 3, 0);
+    svg += `<g id="capture-pcs">${parcel(K, 40, 90, 12, 12, 10, 8)}</g><g id="capture-pcs2">${parcel(K, 39, 90, 12, 10, 9, 11)}</g>`;
+    // console + button + worker
+    svg += box(146, 114, 6, 10, 10, 22, 1) + `<g transform="${FRONT(146, 124, 28)}"><rect class="face glass hot" x="1.5" y="3" width="7" height="8" rx="1"/></g>`;
+    svg += `<g class="press go" id="capture-btn">${box(148, 116, 28, 6, 6, 3, 2.5)}</g>`;
+    svg += `<g class="go" id="capture-worker">${person(K, 132, 124, 6, { hat: 'hard', vest: true, hold: [151, 119, 31.5] })}</g>`;
+    svg += '<g id="capture-fl"></g>';
+    stage.setAttribute('viewBox', K.viewBox); stage.innerHTML = svg;
+
+    const q = s => stage.querySelector(s), N = 7;
+    const home = [[165, 50, 40], [190, 74, 52], [172, 98, 36], [216, 46, 56], [208, 104, 46], [232, 76, 40], [186, 30, 60]], mouth = [124, 53, 34];
+    const root = q('#capture-fl'); root.innerHTML = home.map((_, i) => icon(KINDS[i % KINDS.length])).join('');
+    const els = [...root.children], done = new Array(N).fill(false), st = { n: 0 };
+    let T = 0, t0 = -1e9;
+    const leds = [0, 1, 2].map(i => q('#capture-l' + i)), stripes = q('#capture-stripes'), pc = [q('#capture-pcs'), q('#capture-pcs2')];
+    function render() {
+      const run = T - t0 < 4600, live = st.n > 0 || run;
+      q('#capture-screen').classList.toggle('hot', live); q('#capture-halo').classList.toggle('hot', live);
+      leds.forEach(l => l.classList.toggle('hot', live)); api.power(live);
+      q('#capture-n').textContent = String(st.n).padStart(2, '0') + '/0' + N; q('#capture-bar').setAttribute('width', (44 * st.n / N).toFixed(1));
+      q('#capture-swirl').style.opacity = run && T - t0 < 3000 ? 1 : 0;
+      api.readout(`ingested ${st.n}/${N}` + (run ? ' · belt running' : ''));
+    }
+    function suck() { if (T - t0 < 3600) return; t0 = T; st.n = 0; done.fill(false); render(); }
+    api.loop(t => {
+      T = t; const a = T - t0;
+      els.forEach((el, k) => {
+        const h = home[k], u = (a - k * 170) / 1100, bob = Math.sin(T / 520 + k * 1.7) * 2.5; let p = [h[0], h[1], h[2] + bob], s = 1.15, op = 1;
+        if (a >= 0 && u >= 0 && u < 1) { const e = u * u * (3 - 2 * u), sw = (1 - e) * Math.sin(e * 9) * 7; p = [lerp(h[0], mouth[0], e), lerp(h[1], mouth[1], e) + sw, lerp(h[2], mouth[2], e) + sw * .5]; s = 1.15 * (1 - .7 * e); op = u > .85 ? (1 - u) / .15 : 1; }
+        else if (a >= 0 && u >= 1 && a < 3200) { op = 0; if (!done[k]) { done[k] = true; st.n++; render(); } }
+        else if (a >= 3200 && a < 3700) { op = (a - 3200) / 500; }
+        bill(K, el, p[0], p[1], p[2], s, op);
+      });
+      const run = a >= 0 && a < 4600; stripes.setAttribute('transform', `translate(0 ${run ? ((T / 55) % 6).toFixed(2) : 0})`);
+      pc.forEach((g, i) => { const dy = ((T / 90 + i * 24) % 50); g.style.opacity = run || (a >= 0 && a < 6000) ? 1 : 0; setTr(K, g, 0, dy, 0); });
+      if (a >= 4600 && a < 4700) render();
+    });
+    ['#capture-btn', '#capture-worker'].forEach(s => q(s).addEventListener('click', () => { api.flash(q('#capture-btn')); suck(); }));
+    render();
+    return { key: e => (e.key === ' ' || e.key === 'Enter') ? (api.flash(q('#capture-btn')), suck(), true) : false, demo: () => api.after(200, suck) };
+  },
+});
+
+/* Shot 4 — On the machine's screen, loose data points are assigned into groups. */
+FIGS.push({
+  id: 'groups', name: 'Assigning purpose', shot: 'Shot 4',
+  vo: 'By assigning purpose and managing the loose data, it now becomes a data product that can help the entire organization.',
+  visual: "On the screen of the machine, collected data (social media icons, event metrics) is assigned into groups.",
+  hint: 'Press the button · s sort · r reset · space toggles',
+  aria: 'Isometric machine with a large screen. Nine loose data icons drift on the screen. Click the console button, or press s, to assign them into three groups: social, event and reach. Press r to scatter them again.',
+  css: `[data-fig="groups"] .go{cursor:pointer}[data-fig="groups"] .cell .face{transition:fill .4s,stroke .4s}[data-fig="groups"] .cell.hot .face{stroke:var(--accent-hi);fill:var(--glass-on)}[data-fig="groups"] .cell .lab{fill:var(--ink);opacity:.7;font-size:5.4px}[data-fig="groups"] .cell.hot .lab{fill:var(--accent-hi);opacity:1}`,
+  mount(stage, api) {
+    const K = api.iso.frame([[0, 0, 0], [240, 0, 0], [0, 150, 0], [240, 150, 0], [24, 24, 142]], .04), { TOP, FRONT, SIDE, box } = K, slits = api.iso.slits;
+    const GR = ['SOCIAL', 'EVENT', 'REACH'], CX = [12, 70, 128];
+    const items = [['heart', 0], ['ticket', 1], ['bars', 2], ['chat', 0], ['pin', 1], ['play', 2], ['play', 0], ['cam', 1], ['chat', 2]];
+    const start = [[26, 44], [64, 58], [102, 42], [142, 60], [172, 46], [42, 74], [86, 72], [126, 74], [162, 72]];
+    const slotIdx = [0, 0, 0, 1, 1, 1, 2, 2, 2].map((_, i) => items.slice(0, i).filter(it => it[1] === items[i][1]).length);
+    const target = items.map(([, g], i) => [CX[g] + 9 + slotIdx[i] * 17, 111]);
+    let svg = plate(K, 0, 0, 240, 150, 6, { r: 10 });
+    svg += `<g transform="${FRONT(0, 150, 6)}"><text class="label" x="14" y="4.6" font-size="3.8">DATA PRODUCTS · GROUPING</text></g>`;
+    svg += box(24, 24, 6, 192, 12, 130, 5);
+    svg += `<g transform="${TOP(24, 24, 136)}">${slits(14, 178, 8, 3, 9)}</g>`;
+    svg += `<g transform="${FRONT(24, 36, 136)}">
+      <rect class="face recess" x="5" y="5" width="182" height="120" rx="6"/>
+      <rect class="halo hot" id="groups-halo" x="8" y="8" width="176" height="114" rx="4" filter="url(#bloom)"/>
+      <rect class="face glass hot" id="groups-screen" x="8" y="8" width="176" height="114" rx="4" filter="url(#soft)"/>
+      <g filter="url(#soft)"><text class="scr" x="14" y="21" font-size="7">INGESTED DATA</text><text class="scr" id="groups-count" x="178" y="21" font-size="7" text-anchor="end">9 POINTS</text></g>
+      <line class="detail" x1="12" y1="26" x2="180" y2="26"/>
+      ${GR.map((g, k) => `<g class="cell" id="groups-c${k}"><rect class="face recess" x="${CX[k]}" y="84" width="52" height="34" rx="3"/><text class="lab scr" x="${CX[k] + 4}" y="93" font-size="5.4">${g}</text></g>`).join('')}
+      <g id="groups-ic"></g></g>`;
+    svg += box(100, 92, 6, 40, 24, 8, 2) + `<g transform="${TOP(100, 92, 14)}"><rect class="detail" x="4" y="4" width="32" height="16" rx="2"/></g>`;
+    svg += `<g class="press go" id="groups-btn">${box(110, 100, 14, 20, 8, 4, 3)}</g>`;
+    stage.setAttribute('viewBox', K.viewBox); stage.innerHTML = svg;
+
+    const q = s => stage.querySelector(s), root = q('#groups-ic'); root.innerHTML = items.map(([k]) => icon(k)).join('');
+    const els = [...root.children], cells = GR.map((_, k) => q('#groups-c' + k)), N = items.length, S = 1.0;
+    const st = { dir: 0, t0: -1e9, sorted: false }; let T = 0, lastSig = '';
+    api.loop(t => {
+      T = t; const arrived = [0, 0, 0];
+      els.forEach((el, i) => {
+        let p = clamp((T - st.t0 - i * 110) / 900); if (!st.dir) p = 1 - p; if (st.t0 < 0 && !st.dir) p = 0;
+        const e = ease(p), s = start[i], tg = target[i], sway = (1 - e) * 1;
+        const x = lerp(s[0] + Math.sin(T / 700 + i * 1.9) * 2.2 * sway, tg[0], e), y = lerp(s[1] + Math.cos(T / 620 + i * 1.3) * 2.2 * sway, tg[1], e);
+        el.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${(S * (1 - .12 * e)).toFixed(3)})`);
+        if (p >= 1 && st.dir) arrived[items[i][1]]++;
+      });
+      const sig = arrived.join(','); if (sig !== lastSig) { lastSig = sig; cells.forEach((c, k) => c.classList.toggle('hot', arrived[k] === 3)); render(); }
+    });
+    function render() {
+      const done = lastSig === '3,3,3';
+      q('#groups-count').textContent = done ? '3 DATA PRODUCTS' : st.dir ? 'SORTING…' : '9 POINTS';
+      api.power(true); api.readout(done ? 'sorted · 3 groups of 3' : st.dir ? 'sorting' : 'loose · 9 points');
+    }
+    const sort = on => { st.dir = on ? 1 : 0; st.t0 = T; lastSig = ''; cells.forEach(c => c.classList.remove('hot')); render(); };
+    q('#groups-btn').addEventListener('click', () => { api.flash(q('#groups-btn')); sort(!st.dir); });
+    render();
+    return {
+      key: e => {
+        if (e.key === 's' || e.key === 'S') { sort(true); return true; } if (e.key === 'r' || e.key === 'R') { sort(false); return true; }
+        if (e.key === ' ' || e.key === 'Enter') { api.flash(q('#groups-btn')); sort(!st.dir); return true; } return false;
+      },
+      demo: () => api.after(300, () => sort(true)),
+    };
+  },
+});
+
+/* Shot 5 — Parcels of data leave the machine, ride the belt into a van, and the van drives into the city. */
+FIGS.push({
+  id: 'dispatch', name: 'Data products ship', shot: 'Shot 5',
+  vo: 'Data can be shared and used across the organisation by people with different needs.',
+  visual: 'Boxes of different shapes and sizes come out of the machine onto the conveyor belt. Loaded into a van. The van sets off, driving into the city.',
+  hint: 'Press the button · or click the machine · r resets',
+  aria: 'Isometric machine that produces parcels of different sizes onto a conveyor belt. The parcels load into a van, which drives off down the road into a city. Click the machine or its button, or press space, to dispatch. Press r to reset.',
+  css: `[data-fig="dispatch"] .go{cursor:pointer}`,
+  mount(stage, api) {
+    const K = api.iso.frame([[0, 0, 0], [380, 0, 0], [0, 120, 0], [380, 120, 0], [14, 28, 72]], .03), { TOP, FRONT, SIDE, box, rect } = K, slits = api.iso.slits;
+    const VX = 150, YC = 60, rnd = seeded(41);
+    let svg = plate(K, 0, 0, 380, 120, 6, { r: 10 }) + road(K, VX, 44, 230, 32, 6, 'x');
+    svg += `<g transform="${FRONT(0, 120, 6)}"><text class="label" x="14" y="4.6" font-size="3.8">DISPATCH · DATA PRODUCTS</text></g>`;
+    [[236, 6, 34, 32, 54], [276, 8, 30, 30, 40], [314, 6, 38, 34, 62]].forEach(b => { svg += bldg(K, b[0], b[1], b[2], b[3], b[4], rnd); });
+    // machine with output hatch and a small display
+    svg += box(14, 28, 6, 60, 64, 56, 3);
+    svg += `<g transform="${SIDE(74, 92, 62)}"><rect class="face recess" x="22" y="37" width="20" height="13" rx="2"/><rect class="halo" id="dispatch-hatch" x="22" y="37" width="20" height="13" rx="2" filter="url(#bloom)"/></g>`;
+    svg += `<g transform="${FRONT(14, 92, 62)}"><rect class="face recess" x="6" y="6" width="48" height="24" rx="3"/><rect class="halo" id="dispatch-halo" x="8" y="8" width="44" height="20" rx="2" filter="url(#bloom)"/><rect class="face glass" id="dispatch-screen" x="8" y="8" width="44" height="20" rx="2" filter="url(#soft)"/>
+      <g filter="url(#soft)"><text class="scr" x="12" y="15" font-size="4">OUTPUT</text><text class="scr" id="dispatch-n" x="12" y="24" font-size="8">0/5</text></g>${slits(8, 52, 5, 36, 50)}</g>`;
+    svg += `<g class="press go" id="dispatch-btn">${box(36, 100, 6, 16, 12, 6, 3)}</g>`;
+    // conveyor
+    svg += box(74, 52, 6, 76, 16, 6, 1);
+    svg += `<g transform="${TOP(74, 52, 12)}"><clipPath id="dispatch-belt"><rect x="1" y="1" width="74" height="14"/></clipPath><g clip-path="url(#dispatch-belt)"><g id="dispatch-stripes">${slits(0, 84, 6, 1, 15)}</g></g></g>`;
+    svg += box(74, 50, 12, 76, 2, 3, 0) + box(74, 68, 12, 76, 2, 3, 0);
+    const v = van(K, VX, YC, 6, { lamp: 'dispatch-lamp', open: true });
+    svg += `<g id="dispatch-vb">${v.back}</g>`;
+    const SZ = [[10, 10, 8], [12, 10, 10], [8, 8, 14], [10, 12, 7], [12, 9, 9]];
+    const SLOT = [[3, 49.5], [17, 49.5], [33, 49.5], [6, 60], [24, 61.5]];
+    svg += '<g id="dispatch-boxes">' + SZ.map(([w, d, h], k) => `<g class="pbox" data-k="${k}" style="opacity:0">${parcel(K, 76, YC - d / 2, 12, w, d, h)}</g>`).join('') + '</g>';
+    svg += `<g id="dispatch-vf">${v.front}</g>`;
+    [[240, 88, 30, 24, 16], [280, 90, 30, 22, 20], [318, 88, 36, 26, 14]].forEach(b => { svg += bldg(K, b[0], b[1], b[2], b[3], b[4], rnd, { rh: 7 }); });
+    stage.setAttribute('viewBox', K.viewBox); stage.innerHTML = svg;
+
+    const q = s => stage.querySelector(s), boxes = [...stage.querySelectorAll('.pbox')], layer = q('#dispatch-boxes'), vb = q('#dispatch-vb'), vf = q('#dispatch-vf');
+    const lamps = [...stage.querySelectorAll('.dispatch-lamp')], stripes = q('#dispatch-stripes'), city = [...stage.querySelectorAll('.wins')];
+    const st = { t0: -1e9 }; let T = 0, lastOrder = '', lastSig = '';
+    const vanDX = a => { const td = a - 6400; return td > 0 ? td * td * 2e-5 : 0; };
+    api.loop(t => {
+      T = t; const a = T - st.t0, run = a >= 0 && a < 9800, dx = run ? vanDX(a) : 0;
+      if (a >= 9800 && st.t0 > -1e8) { st.t0 = -1e9; }
+      const keys = []; let loaded = 0, out = 0;
+      boxes.forEach((el, k) => {
+        const [w, d] = SZ[k], u = clamp((a - k * 900) / 2400);
+        if (!run || a < k * 900) { el.style.opacity = 0; keys.push([k, -1]); return; }
+        const w2 = ease(clamp((u - .78) / .22)), tx = VX + SLOT[k][0], hy = YC - d / 2;
+        const x = lerp(76, tx, u) + (u >= 1 ? dx : 0), y = lerp(hy, SLOT[k][1], w2), z = 12 + 4 * w2;
+        setTr(K, el, x - 76, y - hy, z - 12); el.style.opacity = dx > 140 ? clamp(1 - (dx - 140) / 50) : 1;
+        keys.push([k, x + y + z * .02]); if (u >= 1) loaded++; if (u > .15) out = Math.max(out, k + 1);
+      });
+      const order = keys.sort((p, r) => p[1] - r[1]).map(p => p[0]).join(''); if (order !== lastOrder) { lastOrder = order; keys.forEach(p => layer.appendChild(boxes[p[0]])); }
+      [vb, vf].forEach(g => { setTr(K, g, dx, 0, 0); g.style.opacity = dx > 140 ? clamp(1 - (dx - 140) / 50) : 1; });
+      stripes.setAttribute('transform', `translate(${run && a < 6400 ? ((T / 40) % 6).toFixed(2) : 0} 0)`);
+      const sig = [run, loaded, out, dx > 5, dx > 60].join(); if (sig !== lastSig) { lastSig = sig; draw(run, out, loaded, dx); }
+    });
+    function draw(run, out, loaded, dx) {
+      const live = run && out > 0;
+      q('#dispatch-screen').classList.toggle('hot', run); q('#dispatch-halo').classList.toggle('hot', run); q('#dispatch-hatch').classList.toggle('hot', run && out < 5);
+      q('#dispatch-n').textContent = out + '/5'; lamps.forEach(l => l.classList.toggle('hot', dx > 5)); city.forEach(w => w.classList.toggle('lit', dx > 60));
+      api.power(run); api.readout(!run ? 'idle · press the button' : dx > 5 ? 'en route to the city' : `loading ${loaded}/5`);
+    }
+    const start = () => { if (T - st.t0 > 9800 || st.t0 < -1e8) { st.t0 = T; } };
+    const reset = () => { st.t0 = -1e9; };
+    ['#dispatch-btn'].forEach(s => q(s).addEventListener('click', () => { api.flash(q(s)); start(); }));
+    stage.addEventListener('click', e => { if (e.target.closest('#dispatch-btn')) return; if (!e.target.closest('.wins')) start(); });
+    draw(false, 0, 0, 0);
+    return { key: e => { if (e.key === ' ' || e.key === 'Enter') { api.flash(q('#dispatch-btn')); start(); return true; } if (e.key === 'r' || e.key === 'R') { reset(); return true; } return false; }, demo: () => api.after(250, start) };
+  },
+});
+
+/* Shot 6 — A parcel with no information lands on the office steps. */
+FIGS.push({
+  id: 'parcel', name: 'The mystery parcel', shot: 'Shot 6', settle: 6200,
+  vo: 'But imagine that you receive a parcel without any information about what is inside, where it came from, or who sent it?',
+  visual: 'The van arrives and tosses a box to the entrance steps of an office. The person at the door picks it up and is confused.',
+  hint: 'Space or click: deliver the parcel · r resets',
+  aria: 'Isometric office with entrance steps. A delivery van arrives and tosses an unlabelled parcel onto the steps; the person at the door picks it up and looks confused. Press space or click the van to play. Press r to reset.',
+  css: `[data-fig="parcel"] .go{cursor:pointer}`,
+  mount(stage, api) {
+    const K = api.iso.frame([[0, 0, 0], [260, 0, 0], [0, 200, 0], [260, 200, 0], [30, 16, 108]], .03), { TOP, FRONT, SIDE, box, rect } = K, rnd = seeded(23);
+    const VX = 36, YC = 166, SC = 1.5, PX = 115, PY = 80, PZ = 15;
+    let svg = plate(K, 0, 0, 260, 200, 6, { r: 10 }) + road(K, 0, 150, 260, 32, 6, 'x');
+    svg += `<g transform="${FRONT(0, 200, 6)}"><text class="label" x="14" y="4.6" font-size="3.8">OFFICE · RECEIVING</text></g>`;
+    svg += box(30, 16, 6, 170, 60, 100, 2) + `<g transform="${TOP(30, 16, 106)}"><rect class="detail" x="3" y="3" width="164" height="54"/></g>`;
+    svg += wins(FRONT(36, 76, 102), 158, 40, 14, 4, rnd, false) + wins(FRONT(36, 76, 50), 52, 32, 4, 3, rnd, false) + wins(FRONT(142, 76, 50), 52, 32, 4, 3, rnd, false) + wins(SIDE(200, 70, 102), 58, 84, 6, 8, rnd, false);
+    svg += `<g transform="${FRONT(30, 76, 106)}"><rect class="halo" id="parcel-halo" x="70" y="53" width="32" height="38" filter="url(#bloom)"/><rect class="face glass" id="parcel-door" x="70" y="53" width="32" height="38" rx="1.5" filter="url(#soft)"/><line class="detail" x1="86" y1="53" x2="86" y2="91"/></g>`;
+    svg += box(92, 76, 55, 46, 10, 2, 0);
+    svg += box(96, 76, 6, 38, 8, 9, .5) + box(96, 84, 6, 38, 8, 6, .5) + box(96, 92, 6, 38, 8, 3, .5);
+    [[48, 96], [196, 100], [212, 130], [20, 100]].forEach(([x, y]) => { svg += tree(K, x, y, 6, 6); });
+    const idle = person(K, PX, PY, PZ, { hat: false }), hold = person(K, PX, PY, PZ, { hold: [PX, PY + 7, PZ + 12] });
+    svg += `<g id="parcel-person">${big(K, PX, PY, PZ, SC, `<g id="parcel-idle">${idle}</g><g id="parcel-hold" style="display:none">${hold}</g>`)}</g>`;
+    const v = van(K, VX, YC, 6, { lamp: 'parcel-lamp', open: true });
+    svg += `<g class="go" id="parcel-van"><g id="parcel-vb">${v.back}</g><g id="parcel-vf">${v.front}</g></g>`;
+    const HX = 108, HY = 94, HZ = 9, PW = 10, PD = 8, PH = 7;
+    svg += `<g id="parcel-box" style="opacity:0">${parcel(K, HX, HY, HZ, PW, PD, PH)}<g transform="${FRONT(HX, HY + PD, HZ + PH)}"><rect class="detail dash" x="2" y="1.3" width="6" height="4"/></g></g>`;
+    svg += `<g id="parcel-q" style="opacity:0"><rect class="tag hot" x="-9" y="-10" width="18" height="15" rx="4.5"/><path class="tag hot" d="M-2 5L0 9L2 5Z"/><text class="scr" x="0" y="2.4" font-size="11" text-anchor="middle">?</text></g>`;
+    stage.setAttribute('viewBox', K.viewBox); stage.innerHTML = svg;
+
+    const q = s => stage.querySelector(s), box_ = q('#parcel-box'), vb = q('#parcel-vb'), vf = q('#parcel-vf'), pp = q('#parcel-person'), foot = K.P(PX, PY, PZ);
+    const st = { t0: -1e9 }; let T = 0, phase = '', door = false;
+    const START = [66, 160, 22], LAND = [HX, HY, HZ], HOLD = [PX - PW / 2, PY + 7 * SC - PD / 2 + 3, PZ + 12 * SC - PH / 2];
+    const setPhase = (p, text) => { if (p === phase) return; phase = p; api.readout(text); const hold_ = p === 'hold' || p === 'confused', lit = p !== 'idle' && p !== 'arrive' && p !== 'toss';
+      q('#parcel-idle').style.display = hold_ ? 'none' : ''; q('#parcel-hold').style.display = hold_ ? '' : 'none';
+      q('#parcel-door').classList.toggle('hot', lit); q('#parcel-halo').classList.toggle('hot', lit); api.power(lit);
+      stage.querySelectorAll('.parcel-lamp').forEach(l => l.classList.toggle('hot', p === 'arrive')); };
+    api.loop(t => {
+      T = t; const a = T - st.t0, active = a >= 0;
+      if (!active) { vb.style.opacity = vf.style.opacity = 0; box_.style.opacity = 0; q('#parcel-q').style.opacity = 0; pp.removeAttribute('transform'); setPhase('idle', 'idle · press space to deliver'); return; }
+      const arr = clamp(a / 1500), dx = -90 * (1 - easeOut(arr)); setTr(K, vb, dx, 0, 0); setTr(K, vf, dx, 0, 0); vb.style.opacity = vf.style.opacity = clamp(arr * 3);
+      let p = START, op = 1, qop = 0;
+      if (a < 1800) { setPhase('arrive', 'van arriving'); p = START; }
+      else if (a < 2700) { setPhase('toss', 'toss!'); const u = (a - 1800) / 900; p = [lerp(START[0], LAND[0], u), lerp(START[1], LAND[1], u), lerp(START[2], LAND[2], u) + 42 * 4 * u * (1 - u)]; }
+      else if (a < 3300) { setPhase('landed', 'landed on the steps'); p = LAND; }
+      else if (a < 4100) { setPhase('hold', 'picking it up'); const u = ease((a - 3300) / 800); p = [lerp(LAND[0], HOLD[0], u), lerp(LAND[1], HOLD[1], u), lerp(LAND[2], HOLD[2], u)]; }
+      else { setPhase('confused', 'no label · who sent this? what is inside?'); p = HOLD; qop = clamp((a - 4100) / 300); const w = Math.sin(a / 170) * 2.2 * qop; pp.setAttribute('transform', `rotate(${w.toFixed(2)} ${foot[0].toFixed(1)} ${foot[1].toFixed(1)})`); }
+      box_.style.opacity = a < 1500 ? 0 : 1; setTr(K, box_, p[0] - HX, p[1] - HY, p[2] - HZ);
+      if (a < 1800) { setTr(K, box_, START[0] - HX, START[1] - HY, START[2] - HZ); box_.style.opacity = arr >= 1 ? 1 : 0; }
+      const qq = q('#parcel-q'); bill(K, qq, PX, PY, PZ + 36 * SC + 8, 1.1 + .08 * Math.sin(a / 180), qop);
+    });
+    const start = () => { if (T - st.t0 > 8000 || st.t0 < -1e8) st.t0 = T; }, reset = () => { st.t0 = -1e9; };
+    stage.addEventListener('click', e => { if (e.target.closest('#parcel-van')) start(); });
+    setPhase('idle', 'idle · press space to deliver');
+    return { key: e => { if (e.key === ' ' || e.key === 'Enter') { start(); return true; } if (e.key === 'r' || e.key === 'R') { reset(); return true; } return false; }, demo: () => api.after(200, start) };
+  },
+});
+
+/* Shot 7 — A shipping label (the data contract) is stuck on the parcel before it ships. */
+FIGS.push({
+  id: 'label', name: 'The data contract', shot: 'Shot 7', settle: 6400,
+  vo: "This is where a 'shipping label' helps. Or in the case of data, a data contract. With information on: descriptions and meaning, owner, quality expectations, structure and origin.",
+  visual: 'Back at the capture machine, a worker adds a shipping label to the box before loading it into the van.',
+  hint: 'Click the printer or the worker, or press space · r resets',
+  aria: 'Isometric label station on a conveyor belt. A worker prints a data contract label with five fields: description, owner, quality, structure and origin. The label flies onto the parcel and sticks. Click the printer or press space to play, r to reset.',
+  css: `[data-fig="label"] .go{cursor:pointer}[data-fig="label"] .row text{fill:var(--ink);opacity:.55;font-size:4.4px}[data-fig="label"] .row .v{font-size:3.6px}[data-fig="label"] .row.on text{fill:var(--accent-hi);opacity:1}[data-fig="label"] .row .led{transition:fill .2s}`,
+  mount(stage, api) {
+    const K = api.iso.frame([[0, 0, 0], [240, 0, 0], [0, 104, 0], [240, 104, 0], [12, 20, 92]], .03), { TOP, FRONT, SIDE, box } = K, slits = api.iso.slits;
+    const FIELDS = [['WHAT IT MEANS', 'description'], ['OWNER', 'named team'], ['QUALITY', 'fresh · complete'], ['STRUCTURE', 'schema v3'], ['ORIGIN', 'event feed']];
+    const PXH = 108, PYH = 46, PZH = 12, PW = 22, PD = 14, PH = 14;
+    let svg = plate(K, 0, 0, 240, 104, 6, { r: 10 });
+    svg += `<g transform="${FRONT(0, 104, 6)}"><text class="label" x="14" y="4.6" font-size="3.8">LABEL STATION · DATA CONTRACTS</text></g>`;
+    svg += box(12, 20, 6, 50, 50, 44, 3) + `<g transform="${SIDE(62, 70, 50)}"><rect class="face recess" x="18" y="30" width="18" height="12" rx="2"/></g>`;
+    svg += `<g transform="${FRONT(12, 70, 50)}"><rect class="face recess" x="6" y="6" width="38" height="16" rx="2"/><rect class="face glass hot" x="8" y="8" width="34" height="12" rx="1.5" filter="url(#soft)"/><text class="scr" x="11" y="16.5" font-size="5">PARCEL 01</text>${slits(8, 42, 5, 28, 40)}</g>`;
+    svg += box(62, 46, 6, 150, 16, 6, 1);
+    svg += `<g transform="${TOP(62, 46, 12)}"><clipPath id="label-belt"><rect x="1" y="1" width="148" height="14"/></clipPath><g clip-path="url(#label-belt)"><g id="label-stripes">${slits(0, 156, 6, 1, 15)}</g></g></g>`;
+    svg += box(62, 44, 12, 150, 2, 3, 0) + box(62, 62, 12, 150, 2, 3, 0);
+    svg += box(120, 42, 12, 4, 4, 34, 0);
+    const lab = `<g transform="${FRONT(PXH, PYH + PD, PZH + PH)}" id="label-stick" style="opacity:0"><rect class="tag hot" x="3" y="2" width="16" height="10" rx="1"/><rect class="scr-accent" x="5" y="3.2" width="8" height=".8"/>${FIELDS.map((f, r) => `<circle class="led hot" cx="5.4" cy="${5.6 + r * 1.35}" r=".45"/><rect class="scr-accent" x="6.8" y="${5.3 + r * 1.35}" width="${7 + (r % 3)}" height=".6"/>`).join('')}</g>`;
+    svg += `<g id="label-parcel">${parcel(K, PXH, PYH, PZH, PW, PD, PH)}${lab}</g>`;
+    svg += box(120, 42, 44, 4, 26, 4, 0) + box(120, 64, 12, 4, 4, 34, 0);
+    svg += `<g class="go" id="label-printer">${box(112, 47, 48, 20, 16, 10, 2)}<g transform="${FRONT(112, 63, 58)}"><rect class="face recess" x="3" y="3" width="14" height="4" rx="1"/><rect class="led" id="label-led" filter="url(#soft)" x="15" y="8" width="2" height="1"/></g></g>`;
+    svg += `<g class="go" id="label-worker">${big(K, 100, 74, 6, 1.4, person(K, 100, 74, 6, { hat: 'hard', vest: true, hold: [113, 66, 20.5] }))}</g>`;
+    const cw = 78, ch = 52;
+    svg += `<g id="label-card" style="opacity:0"><rect class="tag hot" x="${-cw / 2}" y="${-ch / 2}" width="${cw}" height="${ch}" rx="4"/><rect class="halo hot" x="${-cw / 2}" y="${-ch / 2}" width="${cw}" height="${ch}" rx="4" filter="url(#bloom)" style="opacity:.35"/>
+      <text class="scr" x="${-cw / 2 + 6}" y="${-ch / 2 + 9}" font-size="6">DATA CONTRACT</text><line class="detail" x1="${-cw / 2 + 5}" y1="${-ch / 2 + 12}" x2="${cw / 2 - 5}" y2="${-ch / 2 + 12}"/>
+      ${FIELDS.map((f, r) => `<g class="row" id="label-r${r}"><circle class="led" cx="${-cw / 2 + 8}" cy="${-ch / 2 + 19.5 + r * 7.2}" r="1.8"/><text x="${-cw / 2 + 13}" y="${-ch / 2 + 21 + r * 7.2}">${f[0]}</text><text class="v" x="${cw / 2 - 5}" y="${-ch / 2 + 21 + r * 7.2}" text-anchor="end">${f[1]}</text></g>`).join('')}</g>`;
+    stage.setAttribute('viewBox', K.viewBox); stage.innerHTML = svg;
+
+    const q = s => stage.querySelector(s), card = q('#label-card'), par = q('#label-parcel'), stick = q('#label-stick'), stripes = q('#label-stripes'), led = q('#label-led'), rows = FIELDS.map((_, r) => q('#label-r' + r));
+    const from = [122, 54, 86], to = K.P(PXH + 11, PYH + PD, PZH + PH - 7);
+    const st = { t0: -1e9 }; let T = 0, lastSig = '';
+    api.loop(t => {
+      T = t; const a = T - st.t0, active = a >= 0 && a < 9000;
+      const on = active ? FIELDS.map((_, r) => a > 600 + r * 420) : FIELDS.map(() => false), stuck = active && a > 3400;
+      const mv = active && a > 3600 ? ease(clamp((a - 3600) / 1800)) * 56 : 0, run = active && a > 3600 && a < 5400;
+      setTr(K, par, mv, 0, 0); stripes.setAttribute('transform', `translate(${run ? ((T / 35) % 6).toFixed(2) : 0} 0)`);
+      let op = 0, x = 0, y = 0, sc = 1;
+      const f = K.P(from[0], from[1], from[2]);
+      if (active && a < 2600) { op = clamp(a / 350); x = f[0]; y = f[1] + (1 - easeOut(clamp(a / 500))) * 8; sc = .6 + .4 * easeOut(clamp(a / 500)); }
+      else if (active && a < 3400) { const u = ease((a - 2600) / 800); x = lerp(f[0], to[0], u); y = lerp(f[1], to[1], u); sc = lerp(1, .17, u); op = u > .92 ? (1 - u) / .08 : 1; }
+      card.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${sc.toFixed(3)})`); card.style.opacity = op;
+      stick.style.opacity = stuck ? 1 : 0;
+      const sig = [...on, stuck, active].join(); if (sig !== lastSig) { lastSig = sig; rows.forEach((r, i) => { r.classList.toggle('on', on[i]); r.querySelector('.led').classList.toggle('hot', on[i]); }); led.classList.toggle('hot', active && a < 3400); api.power(active);
+        const n = on.filter(Boolean).length; api.readout(!active ? 'idle · print the label' : stuck ? 'label stuck · parcel ships with its contract' : `contract ${n}/5 fields`); }
+    });
+    const start = () => { st.t0 = T; }, reset = () => { st.t0 = -1e9; };
+    ['#label-printer', '#label-worker', '#label-parcel'].forEach(s => q(s).addEventListener('click', () => { if (T - st.t0 > 5800 || st.t0 < -1e8) start(); }));
+    api.readout('idle · print the label');
+    return { key: e => { if (e.key === ' ' || e.key === 'Enter') { start(); return true; } if (e.key === 'r' || e.key === 'R') { reset(); return true; } return false; }, demo: () => api.after(200, start) };
+  },
+});
+
+/* Shot 8 — The parcel is thrown in, received gladly, opened; data lights up the desk and the laptop pays out like a slot machine. */
+FIGS.push({
+  id: 'payoff', name: 'Received gladly', shot: 'Shot 8', settle: 6600,
+  vo: 'So remember: data products are like parcels of data, and data contracts are like sender labels.',
+  visual: 'The van arrives at the office and throws the parcel to the receiver. Received gladly. Taken inside, opened. Data lights up the desk and laptop, making money like a slot machine.',
+  hint: 'Space or click the desk: deliver · r resets',
+  aria: 'Isometric office room cutaway. A labelled parcel is thrown through the door onto a desk, opened, and data icons burst out. The laptop screen lights up and three reels spin and land on dollar signs. Press space or click the desk to play, r to reset.',
+  css: `[data-fig="payoff"] .go{cursor:pointer}`,
+  mount(stage, api) {
+    const K = api.iso.frame([[0, 0, 0], [200, 0, 0], [0, 170, 0], [200, 170, 0], [0, 0, 92]], .035), { TOP, FRONT, SIDE, box, rect, poly } = K, slits = api.iso.slits;
+    const PX = 150, PY = 78, SC = 1.4, HX = 100, HY = 58, HZ = 27, BW = 14, BD = 12, BH = 10;
+    let svg = plate(K, 0, 0, 200, 170, 6, { r: 8 }) + box(0, 0, 6, 200, 6, 84, 0) + box(0, 6, 6, 6, 164, 84, 0);
+    svg += `<g transform="${FRONT(0, 6, 90)}"><rect class="face recess" x="140" y="34" width="30" height="50"/><line class="detail" x1="140" y1="34" x2="170" y2="34"/>
+      ${[[22, 62], [76, 116]].map(([a, b]) => `<rect class="face recess" x="${a}" y="14" width="${b - a}" height="38" rx="1.5"/><line class="detail" x1="${(a + b) / 2}" y1="14" x2="${(a + b) / 2}" y2="52"/><line class="detail" x1="${a}" y1="33" x2="${b}" y2="33"/>`).join('')}</g>`;
+    svg += `<g transform="${SIDE(6, 150, 86)}"><rect class="face recess" x="6" y="12" width="52" height="34" rx="1.5"/>${slits(24, 40, 10, 12, 46, false)}<rect class="detail" x="70" y="18" width="30" height="40"/><line class="detail" x1="74" y1="26" x2="96" y2="26"/><line class="detail" x1="74" y1="32" x2="90" y2="32"/></g>`;
+    // desk
+    [[36, 54], [36, 80], [118, 54], [118, 80]].forEach(([x, y]) => { svg += box(x, y, 6, 4, 4, 18, 0); });
+    svg += box(34, 52, 24, 90, 34, 3, 1) + `<g transform="${TOP(34, 52, 27)}"><rect class="halo" id="pay-halo" width="90" height="34" rx="6" filter="url(#bloom)"/></g>`;
+    // laptop: lid at back, base in front
+    svg += box(52, 62, 29, 34, 2, 22, 1);
+    svg += `<g transform="${FRONT(52, 64, 51)}"><rect class="halo" id="pay-lhalo" x="1" y="1" width="32" height="18" rx="1.5" filter="url(#bloom)"/><rect class="face glass" id="pay-screen" x="1" y="1" width="32" height="18" rx="1.5" filter="url(#soft)"/>
+      <g id="pay-scr" style="opacity:0" filter="url(#soft)">${[3.4, 12.7, 22].map((x, i) => `<rect class="face recess" x="${x}" y="3" width="8.6" height="9.4" rx="1"/><text class="scr" id="pay-r${i}" x="${x + 4.3}" y="10.6" font-size="8" text-anchor="middle">$</text>`).join('')}<text class="scr" id="pay-amt" x="17" y="17.2" font-size="3.2" text-anchor="middle">PAYOUT 0000</text></g></g>`;
+    svg += box(52, 64, 27, 34, 20, 2, 1) + `<g transform="${TOP(52, 64, 29)}"><rect class="detail" x="6" y="4" width="22" height="9" rx="1"/></g>`;
+    const bx = HX, by = HY, zt = HZ + BH, fl = (pts) => poly(pts, 'face top');
+    svg += `<g id="pay-box" style="opacity:0">${parcel(K, bx, by, HZ, BW, BD, BH)}<g id="pay-open" style="display:none"><g transform="${TOP(bx + 1, by + 1, zt)}"><rect class="face recess" width="${BW - 2}" height="${BD - 2}"/><rect class="halo hot" width="${BW - 2}" height="${BD - 2}" filter="url(#bloom)"/></g>
+      ${fl([[bx, by, zt], [bx + BW, by, zt], [bx + BW, by - 5, zt + 4], [bx, by - 5, zt + 4]])}${fl([[bx, by, zt], [bx, by + BD, zt], [bx - 5, by + BD, zt + 4], [bx - 5, by, zt + 4]])}${fl([[bx + BW, by, zt], [bx + BW, by + BD, zt], [bx + BW + 5, by + BD, zt + 4], [bx + BW + 5, by, zt + 4]])}${fl([[bx, by + BD, zt], [bx + BW, by + BD, zt], [bx + BW, by + BD + 5, zt + 4], [bx, by + BD + 5, zt + 4]])}</g></g>`;
+    svg += `<g class="go" id="pay-person">${big(K, PX, PY, 6, SC, `<g id="pay-down">${person(K, PX, PY, 6, {})}</g><g id="pay-up" style="display:none">${person(K, PX, PY, 6, { up: true })}</g>`)}</g>`;
+    svg += '<g id="pay-fl0"></g><g id="pay-fl1"></g>';
+    stage.setAttribute('viewBox', K.viewBox); stage.innerHTML = svg;
+
+    const q = s => stage.querySelector(s), boxEl = q('#pay-box'), em0 = emitter(api, K, q('#pay-fl0'), [[bx + 7, by + 6, zt + 4]], { n: 6, rise: 52, s: 1, period: 3000, drift: 14, on: false, kinds: ['heart', 'play', 'bars', 'chat', 'pin', 'ticket'] }),
+      em1 = emitter(api, K, q('#pay-fl1'), [[69, 74, 52]], { n: 5, rise: 40, s: .95, period: 2200, drift: 12, on: false, kinds: ['coin'] });
+    const reels = [0, 1, 2].map(i => q('#pay-r' + i)), SYM = ['$', '7', '%', '#', '$', '@'], START = [148, 10, 44], st = { t0: -1e9 }; let T = 0, lastSig = '';
+    api.loop(t => {
+      T = t; const a = T - st.t0, active = a >= 0;
+      const toss = clamp((a - 300) / 800), open = active && a > 1600, lit = active && a > 2200, stop = [3700, 4100, 4500], done = active && a > 4500, up = active && (a < 1300 || done);
+      let p = START, op = active && a > 300 ? 1 : 0;
+      if (active && a <= 1100) p = [lerp(START[0], HX, toss), lerp(START[1], HY, toss), lerp(START[2], HZ, toss) + 26 * 4 * toss * (1 - toss)]; else p = [HX, HY, HZ];
+      if (!active) p = [HX, HY, HZ]; boxEl.style.opacity = op; setTr(K, boxEl, p[0] - HX, p[1] - HY, p[2] - HZ);
+      reels.forEach((r, i) => { if (lit && a < stop[i]) r.textContent = SYM[Math.floor(T / 70 + i * 2) % SYM.length]; else r.textContent = '$'; });
+      const amt = done ? Math.min(7777, Math.floor((a - 4500) / 1200 * 7777)) : 0; q('#pay-amt').textContent = 'PAYOUT ' + String(amt).padStart(4, '0');
+      const sig = [active, open, lit, done, up].join(); if (sig !== lastSig) { lastSig = sig;
+        q('#pay-open').style.display = open ? '' : 'none'; q('#pay-up').style.display = up ? '' : 'none'; q('#pay-down').style.display = up ? 'none' : '';
+        q('#pay-screen').classList.toggle('hot', lit); q('#pay-lhalo').classList.toggle('hot', lit); q('#pay-halo').classList.toggle('hot', lit); q('#pay-scr').style.opacity = lit ? 1 : 0;
+        em0.set(open); em1.set(done); api.power(lit);
+        api.readout(!active ? 'idle · press space' : done ? 'jackpot · data pays out' : lit ? 'data lights up the desk' : open ? 'opened' : 'received!'); }
+    });
+    const start = () => { if (T - st.t0 > 7000 || st.t0 < -1e8) st.t0 = T; }, reset = () => { st.t0 = -1e9; };
+    stage.addEventListener('click', e => { if (e.target.closest('.go') || e.target.closest('#pay-box')) start(); });
+    api.readout('idle · press space');
+    return { key: e => { if (e.key === ' ' || e.key === 'Enter') { start(); return true; } if (e.key === 'r' || e.key === 'R') { reset(); return true; } return false; }, demo: () => api.after(200, start) };
+  },
+});
+
+/* Shot 9 — Recap: the parcel, then the label sticks to it; zoom out on Data City. */
+FIGS.push({
+  id: 'recap', name: 'Recap: zoom out', shot: 'Shot 9', settle: 6800,
+  vo: 'This is how we can make sure that our data around the organization is used confidently.',
+  visual: 'Visual recap: first the parcel, then the label is stuck to it. Zoom out on Data City.',
+  hint: 'Space or click: next step (parcel → label → zoom out) · r resets',
+  aria: 'Isometric data parcel on a pedestal in the middle of Data City. Press space or click to step: first the parcel, then the data-contract label sticks to it, then the view zooms out to the whole city lighting up. Press r to reset.',
+  css: `[data-fig="recap"] .go{cursor:pointer}`,
+  mount(stage, api) {
+    const T = 70, G = 8, N = 5, EXT = N * T + (N - 1) * G;
+    const K = api.iso.frame([[0, 0, 0], [EXT, 0, 0], [0, EXT, 0], [EXT, EXT, 0], [0, 0, 60]], .03), { TOP, FRONT, box, P } = K;
+    const slots = [[6, 6, 26, 24], [38, 8, 26, 22], [6, 38, 24, 26], [38, 36, 26, 28]];
+    const order = []; for (let s = 0; s <= 2 * (N - 1); s++) for (let i = 0; i < N; i++) { const j = s - i; if (j >= 0 && j < N) order.push([i, j]); }
+    const cx0 = 2 * (T + G), cy0 = 2 * (T + G), PW = 18, PD = 16, PH = 14, PXc = cx0 + 26, PYc = cy0 + 27, PZ = 9;
+    let svg = '';
+    order.forEach(([i, j]) => {
+      const ox = i * (T + G), oy = j * (T + G), ring = Math.max(Math.abs(i - 2), Math.abs(j - 2)), rnd = seeded(31 + i * 5 + j * 11);
+      svg += `<g class="tile" data-ring="${ring}">` + plate(K, ox, oy, T, T, 6, { r: 6, noscrew: true });
+      if (ring > 0) slots.forEach((sl, k) => { if (k >= 2 && rnd() < .3) return; const h = (i + j > 4 ? 14 : 18) + Math.round(rnd() * (i + j > 4 ? 14 : 30)); svg += bldg(K, ox + sl[0], oy + sl[1], sl[2], sl[3], h, rnd, { rh: 7, cw: 6 }); });
+      else {
+        svg += `<g transform="${TOP(ox, oy, 6)}"><circle class="halo" id="recap-halo" cx="35" cy="35" r="34" filter="url(#bloom)"/></g>` + box(ox + 18, oy + 19, 6, 28, 26, 3, 3);
+        svg += `<g transform="${TOP(ox + 18, oy + 19, 9)}"><rect class="detail" x="3" y="3" width="22" height="20" rx="2"/></g>`;
+        svg += `<g class="go" id="recap-parcel">${parcel(K, PXc, PYc, PZ, PW, PD, PH)}<g transform="${FRONT(PXc, PYc + PD, PZ + PH)}"><g id="recap-st" style="opacity:0"><rect class="tag hot" x="2" y="1.6" width="14" height="9.6" rx="1"/><rect class="scr-accent" x="3.6" y="3" width="7" height=".8"/>${[0, 1, 2, 3, 4].map(r => `<circle class="led" id="recap-d${r}" cx="4" cy="${5.6 + r * 1.2}" r=".42"/><rect class="scr-accent" x="5.4" y="${5.3 + r * 1.2}" width="${6 + (r % 3)}" height=".55"/>`).join('')}</g></g></g>`;
+      }
+      svg += '</g>';
+    });
+    stage.setAttribute('viewBox', K.viewBox); stage.innerHTML = svg;
+
+    const q = s => stage.querySelector(s), stk = q('#recap-st'), dots = [0, 1, 2, 3, 4].map(r => q('#recap-d' + r)), ringWins = [1, 2].map(r => [...stage.querySelectorAll(`.tile[data-ring="${r}"] .wins`)]);
+    const c = K.P(PXc + PW / 2, PYc + PD / 2, PZ + PH / 2), Wz = 120, Wf = K.vb[2], f = [K.vb[0] + K.vb[2] / 2, K.vb[1] + K.vb[3] / 2];
+    const st = { step: 0, t: [0, -1e9, -1e9] }; let T0 = 0, lastSig = '';
+    api.loop(t => {
+      T0 = t; const lp = clamp((t - st.t[1]) / 1000), zp = ease(clamp((t - st.t[2]) / 2600)), zl = st.step < 2 && t - st.t[2] > 3000 ? 0 : zp;
+      const W = Math.exp(lerp(Math.log(Wz), Math.log(Wf), zl)), H = W * .75, cxv = lerp(c[0], f[0], zl), cyv = lerp(c[1], f[1], zl);
+      stage.setAttribute('viewBox', `${(cxv - W / 2).toFixed(2)} ${(cyv - H / 2).toFixed(2)} ${W.toFixed(2)} ${H.toFixed(2)}`);
+      const e = st.step >= 1 ? easeOut(lp) : 0; stk.setAttribute('transform', `translate(9 6.4) scale(${(e * (1.35 - .35 * e)).toFixed(3)}) translate(-9 -6.4) translate(0 ${(-(1 - e) * 10).toFixed(2)})`); stk.style.opacity = st.step >= 1 ? clamp(lp * 3) : 0;
+      const dn = dots.map((_, r) => st.step >= 1 && lp > .35 + r * .12), r1 = st.step >= 2 && zp > .12, r2 = st.step >= 2 && zp > .4;
+      const sig = [...dn, r1, r2, st.step, zl > .97].join(); if (sig !== lastSig) { lastSig = sig;
+        dots.forEach((d, i) => d.classList.toggle('hot', dn[i])); ringWins[0].forEach(w => w.classList.toggle('lit', r1)); ringWins[1].forEach(w => w.classList.toggle('lit', r2));
+        q('#recap-halo').classList.toggle('hot', st.step >= 1); api.power(st.step >= 1);
+        api.readout(['a data product · a parcel of data', 'data contract attached · the label sticks', zl > .97 ? 'data city · used confidently' : 'zooming out…'][st.step]); }
+    });
+    const next = () => { if (st.step === 2) { st.step = 0; st.t = [0, -1e9, -1e9]; return; } st.step++; st.t[st.step] = T0; }, reset = () => { st.step = 0; st.t = [0, -1e9, -1e9]; };
+    stage.addEventListener('click', () => next());
+    api.readout('a data product · a parcel of data');
+    return { key: e => { if (e.key === ' ' || e.key === 'Enter') { next(); return true; } if (e.key === 'r' || e.key === 'R') { reset(); return true; } return false; }, demo: () => { reset(); api.after(500, next); api.after(2600, next); } };
+  },
+});
+
+
+</script>
+<script>
+(() => {
+  const NS = 'http://www.w3.org/2000/svg', $ = s => document.querySelector(s);
+  const holder = $('#stageHolder'), ro = $('#readout'), root = document.documentElement;
+  const PAL = {
+    city: [['Sodium', '#ffb02e', '#ffe2a6', '#b86b00', '#e08a00'], ['Tungsten', '#ff8a3d', '#ffd0a8', '#c24a00', '#ee6a1a'], ['Neon', '#2ee6c8', '#b4fff1', '#00806d', '#00a88f'], ['Signal', '#ff5a64', '#ffc2c6', '#c0212e', '#e64450'], ['Dusk', '#a58bff', '#ddd2ff', '#5a3fd1', '#7b62ee'], ['Moon', '#9cc8ff', '#e0efff', '#2a6bb8', '#3d86d8']],
+    ember: [['Ember', '#ff8a3d', '#ffd0a8', '#c24a00', '#ee6a1a'], ['Cyan', '#35d6ff', '#b8f1ff', '#007ea3', '#1aa6d1'], ['Lime', '#9be84a', '#e0ffb8', '#3f7d00', '#5aa516'], ['Violet', '#a58bff', '#ddd2ff', '#5a3fd1', '#7b62ee'], ['Rose', '#ff6fa8', '#ffc4dc', '#b80e5a', '#e03d82'], ['Ice', '#9cc8ff', '#e0efff', '#2a6bb8', '#3d86d8']]
+  };
+  const pal = Array.isArray(GALLERY.palette) ? GALLERY.palette : PAL[GALLERY.palette] || PAL.city;
+  const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  let accent = +store.get('iso-accent') || 0, theme = store.get('iso-theme') || (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  function applyTheme() {
+    root.dataset.theme = theme; const p = pal[accent] || pal[0], L = theme === 'light';
+    root.style.setProperty('--accent', L ? p[3] : p[1]); root.style.setProperty('--accent-hi', L ? p[4] : p[2]);
+    $('#pal').innerHTML = pal.map((q, i) => `<button class="sw" type="button" title="${q[0]}" aria-label="${q[0]}" aria-pressed="${i === accent}" data-i="${i}" style="background:${L ? q[3] : q[1]}"></button>`).join('');
+  }
+  $('#pal').addEventListener('click', e => { const b = e.target.closest('.sw'); if (b) { accent = +b.dataset.i; store.set('iso-accent', accent); applyTheme(); } });
+  $('#theme').onclick = () => { theme = theme === 'light' ? 'dark' : 'light'; store.set('iso-theme', theme); applyTheme(); };
+  applyTheme();
+
+  document.head.insertAdjacentHTML('beforeend', `<style id="figcss">${FIGS.map(f => f.css || '').join('\n')}</style>`);
+
+  let stage = $('#stage'), cur = null; const timers = new Set(), intervals = new Set(), stops = new Set();
+  function clearAll() { timers.forEach(clearTimeout); intervals.forEach(clearInterval); stops.forEach(f => f()); timers.clear(); intervals.clear(); stops.clear(); }
+  const api = {
+    iso: ISO, esc: ISO.esc,
+    readout: s => { ro.textContent = s; },
+    audio() { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(), out = ctx.createGain(), analyser = ctx.createAnalyser(); out.connect(analyser); analyser.connect(ctx.destination); return { ctx, out, analyser }; } catch (e) { return null; } },
+    after(ms, fn) { const id = setTimeout(() => { timers.delete(id); fn(); }, ms); timers.add(id); return id; },
+    every(ms, fn) { const id = setInterval(fn, ms); intervals.add(id); return id; },
+    loop(fn) { let on = true, id; const f = t => { if (!on) return; fn(t); id = requestAnimationFrame(f); }; id = requestAnimationFrame(f); const stop = () => { on = false; cancelAnimationFrame(id); }; stops.add(stop); return stop; },
+    flash(el) { el.classList.add('down', 'lit'); setTimeout(() => el.classList.remove('down'), 110); setTimeout(() => el.classList.remove('lit'), 420); },
+    replay(el, c = 'go') { el.classList.remove(c); void el.getBoundingClientRect(); el.classList.add(c); },
+    power(on) { holder.classList.toggle('on', !!on); },
+  };
+
+  const nav = $('#nav');
+  nav.innerHTML = FIGS.map((f, i) => `<li><button type="button" data-i="${i}"><i>${String(i + 1).padStart(2, '0')}</i>${ISO.esc(f.name)}</button></li>`).join('');
+  nav.addEventListener('click', e => { const b = e.target.closest('button'); if (b) select(+b.dataset.i); });
+
+  function select(i) {
+    if (cur && cur.inst.unmount) { try { cur.inst.unmount(); } catch (e) {} }
+    clearAll(); ro.textContent = ''; holder.classList.remove('on');
+    const f = FIGS[i], s = document.createElementNS(NS, 'svg');
+    s.id = 'stage'; s.setAttribute('class', 'stage'); s.setAttribute('role', 'img'); s.setAttribute('tabindex', '0');
+    s.setAttribute('aria-label', f.aria || f.name); s.dataset.fig = f.id;
+    stage.replaceWith(s); stage = s;
+    const inst = f.mount(stage, api) || {}; cur = { i, f, inst };
+    stage.addEventListener('keydown', e => { if (e.metaKey || e.ctrlKey || e.altKey) return; if (inst.key && inst.key(e)) e.preventDefault(); });
+    stage.addEventListener('keyup', e => { if (inst.keyup) inst.keyup(e); });
+    nav.querySelectorAll('button').forEach(b => b.setAttribute('aria-current', +b.dataset.i === i));
+    $('#figlabel').innerHTML = `Fig ${i + 1} · <b>${ISO.esc(f.name)}</b>`;
+    $('#hint').textContent = f.hint || ''; $('#shot').textContent = f.shot || ''; $('#vo').textContent = f.vo ? '“' + f.vo + '”' : ''; $('#vis').textContent = f.visual || '';
+    document.title = `${f.name} · Data mesh storyboard`; try { history.replaceState(null, '', '#' + f.id); } catch (e) {}
+    stage.focus({ preventScroll: true });
+    if (inst.demo && (GALLERY.autoDemo || /[?&]demo/.test(location.search))) api.after(350, () => inst.demo());
+  }
+  addEventListener('keydown', e => {
+    if (e.target !== document.body || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === ']' || e.key === 'PageDown') select(Math.min(FIGS.length - 1, cur.i + 1));
+    if (e.key === '[' || e.key === 'PageUp') select(Math.max(0, cur.i - 1));
+  });
+
+  $('#dl').onclick = () => {
+    const cs = getComputedStyle(root), names = ['--panel', '--body', '--deck', '--line', '--detail', '--recess', '--ink', '--ink-hi', '--glass', '--glass-on', '--accent', '--accent-hi', '--accent-dim'];
+    const vars = names.map(k => `${k}:${cs.getPropertyValue(k).trim()}`).join(';');
+    const c = stage.cloneNode(true), vb = stage.getAttribute('viewBox').split(' ').map(Number);
+    ['tabindex', 'role', 'style'].forEach(a => c.removeAttribute(a)); c.setAttribute('xmlns', NS); c.setAttribute('width', 1200); c.setAttribute('height', 900);
+    c.setAttribute('aria-label', cur.f.aria || cur.f.name); c.setAttribute('role', 'img');
+    const css = `svg.stage{${vars}}\n` + $('#vocab').textContent + '\n' + (cur.f.css || '');
+    c.insertAdjacentHTML('afterbegin', `<style>${css}</style><defs>${$('#fx').innerHTML}</defs><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" style="fill:var(--panel);vector-effect:none"/>`);
+    const a = document.createElement('a'); a.download = `shot-${cur.i + 1}-${cur.f.id}.svg`;
+    a.href = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(c)], { type: 'image/svg+xml' })); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+
+  const h = location.hash.slice(1), start = FIGS.findIndex(f => f.id === h);
+  select(start >= 0 ? start : 0);
+})();
+</script>
+</body>
+</html>
