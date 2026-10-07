@@ -5,7 +5,7 @@ FIGS.push({
   visual: 'The van arrives at the office and throws the parcel to the receiver. Received gladly. Taken inside, opened. Data lights up the desk and laptop, making money like a slot machine.',
   hint: 'Space or click the desk: deliver · r resets',
   aria: 'Isometric office room cutaway. A labelled parcel is thrown through the door onto a desk, opened, and data icons burst out. The laptop screen lights up and three reels spin and land on dollar signs. Press space or click the desk to play, r to reset.',
-  css: `[data-fig="payoff"] .go{cursor:pointer}`,
+  css: `[data-fig="payoff"] .go{cursor:pointer}[data-fig="payoff"] .rl{fill:var(--yellow)}`,
   mount(stage, api) {
     const K = api.iso.frame([[0, 0, 0], [200, 0, 0], [0, 170, 0], [200, 170, 0], [0, 0, 92]], .035), { TOP, FRONT, SIDE, box, rect, poly } = K, slits = api.iso.slits;
     const PX = 150, PY = 78, SC = 1.4, HX = 100, HY = 58, HZ = 27, BW = 14, BD = 12, BH = 10;
@@ -19,7 +19,7 @@ FIGS.push({
     // laptop: lid at back, base in front
     svg += box(52, 62, 29, 34, 2, 22, 1);
     svg += `<g transform="${FRONT(52, 64, 51)}"><rect class="halo" id="pay-lhalo" x="1" y="1" width="32" height="18" rx="1.5" filter="url(#bloom)"/><rect class="face glass" id="pay-screen" x="1" y="1" width="32" height="18" rx="1.5" filter="url(#soft)"/>
-      <g id="pay-scr" style="opacity:0" filter="url(#soft)">${[3.4, 12.7, 22].map((x, i) => `<rect class="face recess" x="${x}" y="3" width="8.6" height="9.4" rx="1"/><text class="scr" id="pay-r${i}" x="${x + 4.3}" y="10.6" font-size="8" text-anchor="middle">$</text>`).join('')}<text class="scr" id="pay-amt" x="17" y="17.2" font-size="3.2" text-anchor="middle">PAYOUT 0000</text></g></g>`;
+      <g id="pay-scr" style="opacity:0" filter="url(#soft)">${[3.4, 12.7, 22].map((x, i) => `<rect class="face recess" x="${x}" y="3" width="8.6" height="9.4" rx="1"/><text class="scr rl" id="pay-r${i}" x="${x + 4.3}" y="10.6" font-size="8" text-anchor="middle">$</text>`).join('')}<text class="scr" id="pay-amt" x="17" y="17.2" font-size="3.2" text-anchor="middle">PAYOUT 0000</text></g></g>`;
     svg += box(52, 64, 27, 34, 20, 2, 1) + `<g transform="${TOP(52, 64, 29)}"><rect class="detail" x="6" y="4" width="22" height="9" rx="1"/></g>`;
     const bx = HX, by = HY, zt = HZ + BH, fl = (pts) => poly(pts, 'face top');
     svg += `<g id="pay-box" style="opacity:0">${parcel(K, bx, by, HZ, BW, BD, BH)}<g id="pay-open" style="display:none"><g transform="${TOP(bx + 1, by + 1, zt)}"><rect class="face recess" width="${BW - 2}" height="${BD - 2}"/><rect class="halo hot" width="${BW - 2}" height="${BD - 2}" filter="url(#bloom)"/></g>

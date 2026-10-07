@@ -7,7 +7,7 @@ const w = dom.window, d = w.document;
 w.addEventListener('error', e => errs.push('window: ' + e.message + ' @' + (e.filename || '') + ':' + e.lineno));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const vocab = d.querySelector('#vocab').textContent, fx = d.querySelector('#fx').innerHTML;
-const tokens = '--panel:#0c0f14;--body:#171c24;--deck:#212836;--line:#a3aebf;--detail:#4d586a;--recess:#0a0d12;--ink:#c8d0dc;--ink-hi:#fff;--glass:#0f141b;--accent:#ffb02e;--accent-hi:#ffe2a6;--glass-on:color-mix(in srgb,#ffb02e 26%,#0a0d12);--accent-dim:color-mix(in srgb,#ffb02e 38%,#0c0f14)';
+const tokens = '--navy:#001E62;--red:#DB0A40;--yellow:#FFC72C;--silver:#C4C9D1;--white:#FFFFFF;--panel:#001E62;--recess:#00163f;--ink:#C4C9D1;--ink-hi:#FFFFFF;--accent:#FFC72C;--accent-hi:#FFFFFF;--glass:#00163f;--glass-on:#FFFFFF;--detail:rgba(196,201,209,.55)';
 (async () => {
   const btns = [...d.querySelectorAll('#nav button')]; fs.mkdirSync(root + '/svg', { recursive: true });
   for (let i = 0; i < btns.length; i++) {
@@ -18,7 +18,7 @@ const tokens = '--panel:#0c0f14;--body:#171c24;--deck:#212836;--line:#a3aebf;--d
     const css = (d.querySelector('#figcss').textContent.split('\n').filter(l => l.includes('data-fig="' + id + '"')).join('\n'));
     const vb = s.getAttribute('viewBox').split(' ').map(Number);
     let out = fig.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" ').replace(/ tabindex="0"/, '');
-    out = out.replace(/(<svg[^>]*>)/, `$1<style>svg.stage{${tokens}}\n${vocab}\n${css}</style><defs>${fx}</defs><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" style="fill:var(--panel);vector-effect:none"/>`);
+    out = out.replace(/(<svg[^>]*>)/, `$1<style>svg.stage{${tokens}}\n${vocab}\n${css}</style><defs>${fx}</defs><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" style="fill:url(#g-bg);vector-effect:none"/>`);
     fs.writeFileSync(`${root}/svg/shot-${i + 1}-${id}.svg`, out);
     console.log(`fig ${i + 1} ${id}: ${fig.length} chars, bad tokens ${bad}, new errors ${errs.length - before}, readout "${d.querySelector('#readout').textContent}"`);
   }

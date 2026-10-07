@@ -5,7 +5,7 @@ FIGS.push({
   visual: 'Back at the capture machine, a worker adds a shipping label to the box before loading it into the van.',
   hint: 'Click the printer or the worker, or press space · r resets',
   aria: 'Isometric label station on a conveyor belt. A worker prints a data contract label with five fields: description, owner, quality, structure and origin. The label flies onto the parcel and sticks. Click the printer or press space to play, r to reset.',
-  css: `[data-fig="label"] .go{cursor:pointer}[data-fig="label"] .row text{fill:var(--ink);opacity:.55;font-size:4.4px}[data-fig="label"] .row .v{font-size:3.6px}[data-fig="label"] .row.on text{fill:var(--accent-hi);opacity:1}[data-fig="label"] .row .led{transition:fill .2s}`,
+  css: `[data-fig="label"] .go{cursor:pointer}[data-fig="label"] .row text{fill:var(--navy);opacity:.3;font-size:4.4px}[data-fig="label"] .row .v{font-size:3.6px}[data-fig="label"] .row.on text{opacity:1}[data-fig="label"] .row.on .v{fill:var(--red)}[data-fig="label"] .row .led{transition:fill .2s}`,
   mount(stage, api) {
     const K = api.iso.frame([[0, 0, 0], [240, 0, 0], [0, 104, 0], [240, 104, 0], [12, 20, 92]], .03), { TOP, FRONT, SIDE, box } = K, slits = api.iso.slits;
     const FIELDS = [['WHAT IT MEANS', 'description'], ['OWNER', 'named team'], ['QUALITY', 'fresh · complete'], ['STRUCTURE', 'schema v3'], ['ORIGIN', 'event feed']];
@@ -22,7 +22,7 @@ FIGS.push({
     svg += `<g id="label-parcel">${parcel(K, PXH, PYH, PZH, PW, PD, PH)}${lab}</g>`;
     svg += box(120, 42, 44, 4, 26, 4, 0) + box(120, 64, 12, 4, 4, 34, 0);
     svg += `<g class="go" id="label-printer">${box(112, 47, 48, 20, 16, 10, 2)}<g transform="${FRONT(112, 63, 58)}"><rect class="face recess" x="3" y="3" width="14" height="4" rx="1"/><rect class="led" id="label-led" filter="url(#soft)" x="15" y="8" width="2" height="1"/></g></g>`;
-    svg += `<g class="go" id="label-worker">${big(K, 100, 74, 6, 1.4, person(K, 100, 74, 6, { hat: 'hard', vest: true, hold: [113, 66, 20.5] }))}</g>`;
+    svg += `<g class="go" id="label-worker">${big(K, 100, 74, 6, 1.4, person(K, 100, 74, 6, { hat: 'hard', vest: true, tone: 'y', hold: [113, 66, 20.5] }))}</g>`;
     const cw = 78, ch = 52;
     svg += `<g id="label-card" style="opacity:0"><rect class="tag hot" x="${-cw / 2}" y="${-ch / 2}" width="${cw}" height="${ch}" rx="4"/><rect class="halo hot" x="${-cw / 2}" y="${-ch / 2}" width="${cw}" height="${ch}" rx="4" filter="url(#bloom)" style="opacity:.35"/>
       <text class="scr" x="${-cw / 2 + 6}" y="${-ch / 2 + 9}" font-size="6">DATA CONTRACT</text><line class="detail" x1="${-cw / 2 + 5}" y1="${-ch / 2 + 12}" x2="${cw / 2 - 5}" y2="${-ch / 2 + 12}"/>

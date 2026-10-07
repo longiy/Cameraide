@@ -43,7 +43,7 @@ function wins(t, w, h, cols, rows, rnd, lit = false) {
 /* a building: box with window grids on FRONT and SIDE */
 function bldg(K, x, y, w, d, h, rnd, o = {}) {
   const z = o.z === undefined ? 6 : o.z, pad = 3, cw = o.cw || 7, rh = o.rh || 8;
-  let s = K.box(x, y, z, w, d, h, o.r === undefined ? 1.5 : o.r);
+  let s = K.box(x, y, z, w, d, h, o.r === undefined ? 1.5 : o.r, 'bld');
   s += `<g transform="${K.TOP(x, y, z + h)}"><rect class="detail" x="2.5" y="2.5" width="${w - 5}" height="${d - 5}"/></g>`;
   const cF = Math.max(2, Math.round((w - 2 * pad) / cw)), cS = Math.max(2, Math.round((d - 2 * pad) / cw)), rows = Math.max(2, Math.floor((h - 8) / rh));
   s += wins(K.FRONT(x + pad, y + d, z + h - 5), w - 2 * pad, rows * rh - 2, cF, rows, rnd, o.lit);
@@ -52,14 +52,14 @@ function bldg(K, x, y, w, d, h, rnd, o = {}) {
 }
 function tree(K, x, y, z = 6, r = 7) {
   const a = K.P(x, y, z + 1), b = K.P(x, y, z + 9), c = K.P(x, y, z + 9 + r * .8);
-  return `<path class="mast" d="M${a.map(f1).join(' ')}L${b.map(f1).join(' ')}"/><circle class="face" cx="${f1(c[0])}" cy="${f1(c[1])}" r="${r}"/><circle class="detail" cx="${f1(c[0] - r * .2)}" cy="${f1(c[1] - r * .2)}" r="${f1(r * .5)}"/>`;
+  return `<path class="mast" d="M${a.map(f1).join(' ')}L${b.map(f1).join(' ')}"/><circle class="tree" cx="${f1(c[0])}" cy="${f1(c[1])}" r="${r}"/><circle class="detail" style="stroke:rgba(0,30,98,.25)" cx="${f1(c[0] - r * .2)}" cy="${f1(c[1] - r * .2)}" r="${f1(r * .5)}"/>`;
 }
 /* little person, feet at (x,y,z). o: hat 'cap'|'hard', vest, hold [x,y,z], up, cls */
 function person(K, x, y, z, o = {}) {
-  const { box, P, FRONT } = K; let s = `<g class="person ${o.cls || ''}">`;
-  s += box(x - 3.2, y - 1.8, z, 6.4, 3.6, 9, .8);
+  const { box, P, FRONT } = K; let s = `<g class="person ${o.tone ? 'tone-' + o.tone : ''} ${o.cls || ''}">`;
+  s += box(x - 3.2, y - 1.8, z, 6.4, 3.6, 9, .8, 'legs');
   s += `<g transform="${FRONT(x - 3.2, y + 1.8, z + 9)}"><line class="detail" x1="3.2" y1="1" x2="3.2" y2="9"/></g>`;
-  s += box(x - 3.8, y - 2.2, z + 9, 7.6, 4.4, 9.5, 1.2);
+  s += box(x - 3.8, y - 2.2, z + 9, 7.6, 4.4, 9.5, 1.2, 'torso');
   if (o.vest) s += `<g transform="${FRONT(x - 3.8, y + 2.2, z + 18.5)}"><line class="detail" x1="2" y1="0" x2="2" y2="9.5"/><line class="detail" x1="5.6" y1="0" x2="5.6" y2="9.5"/><line class="detail" x1="0" y1="6" x2="7.6" y2="6"/></g>`;
   const L = P(x - 4.2, y, z + 17.6), R = P(x + 4.2, y, z + 17.6);
   const hl = o.hold ? P(o.hold[0] - 1.6, o.hold[1], o.hold[2]) : o.up ? P(x - 5.5, y, z + 25.5) : P(x - 4.6, y, z + 9.5);
@@ -73,7 +73,8 @@ function person(K, x, y, z, o = {}) {
 /* a seated/standing spectator: head + shoulders */
 function spectator(K, x, y, z, up) {
   const h = K.P(x, y, z + 11), sh = K.P(x, y, z + 7);
-  return K.box(x - 2.2, y - 1.6, z, 4.4, 3.2, 8, 1.1) + `<circle class="face" cx="${f1(h[0])}" cy="${f1(h[1])}" r="2.5"/>` + (up ? `<path class="limb" style="stroke-width:1.5" d="M${K.P(x + 2.2, y, z + 7).map(f1).join(' ')}L${K.P(x + 3.4, y, z + 14).map(f1).join(' ')}"/>` : '');
+  const tn = ['', 'y', 'w', 'r', 'y'][Math.floor(Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5) % 5)];
+  return `<g class="person ${tn ? 'tone-' + tn : ''}">` + K.box(x - 2.2, y - 1.6, z, 4.4, 3.2, 8, 1.1, 'torso') + `<circle class="face" cx="${f1(h[0])}" cy="${f1(h[1])}" r="2.5"/>` + (up ? `<path class="limb" style="stroke-width:1.5" d="M${K.P(x + 2.2, y, z + 7).map(f1).join(' ')}L${K.P(x + 3.4, y, z + 14).map(f1).join(' ')}"/>` : '') + '</g>';
 }
 /* parcel box with tape; z = base */
 function parcel(K, x, y, z, w, d, h, cls = '') {
@@ -110,3 +111,11 @@ function emitter(api, K, root, src, o = {}) {
 
 /* scale a group of 3D markup about the screen-space foot point (x,y,z) */
 const big = (K, x, y, z, s, inner) => { const p = K.P(x, y, z); return `<g transform="translate(${f1(p[0])} ${f1(p[1])}) scale(${s}) translate(${f1(-p[0])} ${f1(-p[1])})">${inner}</g>`; };
+
+/* convex hull of 2D points (for cones, funnels) */
+function hull2(p) {
+  p = p.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]); const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = [];
+  p.forEach(q => { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); });
+  p.slice().reverse().forEach(q => { while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); });
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}

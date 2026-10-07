@@ -22,21 +22,22 @@ FIGS.push({
       ${slits(8, 54, 5, 42, 54)}
       <circle class="led" id="capture-l0" filter="url(#soft)" cx="9" cy="39" r="1.3"/><circle class="led" id="capture-l1" filter="url(#soft)" cx="14" cy="39" r="1.3"/><circle class="led" id="capture-l2" filter="url(#soft)" cx="19" cy="39" r="1.3"/>
     </g>`;
-    // the sucker: stepped horn pointing +x, mouth on the side plane
-    svg += box(78, 41, 22, 14, 24, 24, 2) + box(92, 36, 17, 14, 34, 34, 3) + box(106, 30, 11, 16, 46, 46, 5);
-    svg += `<g transform="${SIDE(122, 76, 57)}">
-      <rect class="face recess" x="3" y="3" width="40" height="40" rx="9"/>
-      <rect class="detail" x="8" y="8" width="30" height="30" rx="6"/><rect class="detail" x="13" y="13" width="20" height="20" rx="4"/>
-      <g id="capture-swirl" class="sweep" style="opacity:0" filter="url(#soft)"><path d="M6 23H16M23 6V16M40 23H30M23 40V30"/></g></g>`;
+    // the sucker: a translucent funnel along +x, red rim at the mouth
+    const cone = []; for (let k = 0; k < 48; k++) { const a = k / 48 * 2 * Math.PI; cone.push(P(80, 53 + 9 * Math.cos(a), 34 + 9 * Math.sin(a)), P(124, 53 + 25 * Math.cos(a), 34 + 25 * Math.sin(a))); }
+    svg += `<defs><linearGradient id="capture-gfun" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset=".65" stop-color="#FFFFFF" stop-opacity=".55"/><stop offset="1" stop-color="#C4C9D1" stop-opacity=".25"/></linearGradient></defs>`;
+    svg += box(74, 45, 26, 8, 16, 16, 2);
+    svg += `<polygon points="${hull2(cone).map(p => p.map(f1).join(',')).join(' ')}" style="fill:url(#capture-gfun);stroke:rgba(255,255,255,.7);stroke-width:.8"/>`;
+    svg += `<g transform="${SIDE(124, 78, 59)}"><circle cx="25" cy="25" r="25" style="fill:rgba(0,22,63,.45);stroke:var(--red);stroke-width:4.5"/><circle class="detail" cx="25" cy="25" r="16"/><circle class="detail" cx="25" cy="25" r="8"/>
+      <g id="capture-swirl" class="sweep" style="opacity:0" filter="url(#soft)"><path d="M7 25H16M25 7V16M43 25H34M25 43V34"/></g></g>`;
     // conveyor
-    svg += box(34, 88, 6, 24, 60, 6, 1);
-    svg += `<g transform="${TOP(34, 88, 12)}"><clipPath id="capture-belt"><rect x="1" y="1" width="22" height="58"/></clipPath><g clip-path="url(#capture-belt)"><g id="capture-stripes">${slits(0, 66, 6, 1, 23, false)}</g></g></g>`;
-    svg += box(32, 88, 12, 2, 60, 3, 0) + box(58, 88, 12, 2, 60, 3, 0);
+    svg += box(34, 88, 6, 24, 48, 6, 1);
+    svg += `<g transform="${TOP(34, 88, 12)}"><clipPath id="capture-belt"><rect x="1" y="1" width="22" height="46"/></clipPath><g clip-path="url(#capture-belt)"><g id="capture-stripes">${slits(0, 66, 6, 1, 23, false)}</g></g></g>`;
+    svg += box(32, 88, 12, 2, 48, 3, 0) + box(58, 88, 12, 2, 48, 3, 0);
     svg += `<g id="capture-pcs">${parcel(K, 40, 90, 12, 12, 10, 8)}</g><g id="capture-pcs2">${parcel(K, 39, 90, 12, 10, 9, 11)}</g>`;
     // console + button + worker
     svg += box(146, 114, 6, 10, 10, 22, 1) + `<g transform="${FRONT(146, 124, 28)}"><rect class="face glass hot" x="1.5" y="3" width="7" height="8" rx="1"/></g>`;
     svg += `<g class="press go" id="capture-btn">${box(148, 116, 28, 6, 6, 3, 2.5)}</g>`;
-    svg += `<g class="go" id="capture-worker">${person(K, 132, 124, 6, { hat: 'hard', vest: true, hold: [151, 119, 31.5] })}</g>`;
+    svg += `<g class="go" id="capture-worker">${person(K, 132, 124, 6, { hat: 'hard', vest: true, tone: 'y', hold: [151, 119, 31.5] })}</g>`;
     svg += '<g id="capture-fl"></g>';
     stage.setAttribute('viewBox', K.viewBox); stage.innerHTML = svg;
 
@@ -65,7 +66,7 @@ FIGS.push({
         bill(K, el, p[0], p[1], p[2], s, op);
       });
       const run = a >= 0 && a < 4600; stripes.setAttribute('transform', `translate(0 ${run ? ((T / 55) % 6).toFixed(2) : 0})`);
-      pc.forEach((g, i) => { const dy = ((T / 90 + i * 24) % 50); g.style.opacity = run || (a >= 0 && a < 6000) ? 1 : 0; setTr(K, g, 0, dy, 0); });
+      pc.forEach((g, i) => { const dy = ((T / 90 + i * 19) % 38); g.style.opacity = run || (a >= 0 && a < 6000) ? 1 : 0; setTr(K, g, 0, dy, 0); });
       if (a >= 4600 && a < 4700) render();
     });
     ['#capture-btn', '#capture-worker'].forEach(s => q(s).addEventListener('click', () => { api.flash(q('#capture-btn')); suck(); }));

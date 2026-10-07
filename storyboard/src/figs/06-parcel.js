@@ -17,7 +17,7 @@ FIGS.push({
     svg += box(92, 76, 55, 46, 10, 2, 0);
     svg += box(96, 76, 6, 38, 8, 9, .5) + box(96, 84, 6, 38, 8, 6, .5) + box(96, 92, 6, 38, 8, 3, .5);
     [[48, 96], [196, 100], [212, 130], [20, 100]].forEach(([x, y]) => { svg += tree(K, x, y, 6, 6); });
-    const idle = person(K, PX, PY, PZ, { hat: false }), hold = person(K, PX, PY, PZ, { hold: [PX, PY + 7, PZ + 12] });
+    const idle = person(K, PX, PY, PZ, { tone: 'w' }), hold = person(K, PX, PY, PZ, { tone: 'w', hold: [PX, PY + 7, PZ + 12] });
     svg += `<g id="parcel-person">${big(K, PX, PY, PZ, SC, `<g id="parcel-idle">${idle}</g><g id="parcel-hold" style="display:none">${hold}</g>`)}</g>`;
     const v = van(K, VX, YC, 6, { lamp: 'parcel-lamp', open: true });
     svg += `<g class="go" id="parcel-van"><g id="parcel-vb">${v.back}</g><g id="parcel-vf">${v.front}</g></g>`;

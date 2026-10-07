@@ -5,7 +5,7 @@ FIGS.push({
   visual: "On the screen of the machine, collected data (social media icons, event metrics) is assigned into groups.",
   hint: 'Press the button · s sort · r reset · space toggles',
   aria: 'Isometric machine with a large screen. Nine loose data icons drift on the screen. Click the console button, or press s, to assign them into three groups: social, event and reach. Press r to scatter them again.',
-  css: `[data-fig="groups"] .go{cursor:pointer}[data-fig="groups"] .cell .face{transition:fill .4s,stroke .4s}[data-fig="groups"] .cell.hot .face{stroke:var(--accent-hi);fill:var(--glass-on)}[data-fig="groups"] .cell .lab{fill:var(--ink);opacity:.7;font-size:5.4px}[data-fig="groups"] .cell.hot .lab{fill:var(--accent-hi);opacity:1}`,
+  css: `[data-fig="groups"] .go{cursor:pointer}[data-fig="groups"] .cell .face{fill:#e9ecf1;transition:fill .4s}[data-fig="groups"] .cell.hot .face{fill:var(--navy)}[data-fig="groups"] .cell .lab{fill:var(--navy);opacity:.55;font-size:5.4px}[data-fig="groups"] .cell.hot .lab{opacity:1;fill:var(--white)}`,
   mount(stage, api) {
     const K = api.iso.frame([[0, 0, 0], [240, 0, 0], [0, 150, 0], [240, 150, 0], [24, 24, 142]], .04), { TOP, FRONT, SIDE, box } = K, slits = api.iso.slits;
     const GR = ['SOCIAL', 'EVENT', 'REACH'], CX = [12, 70, 128];
